@@ -46,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -66,7 +67,7 @@ import com.assetstudio.mobile.ui.browser.rememberStoragePermission
 import com.assetstudio.mobile.ui.components.InfoRow
 
 /*
- * 主页：选择文件 → 加载 → 查看资产列表
+ * 主页：Select files → Load → ViewAsset列表
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,6 +75,7 @@ fun HomeScreen(
     viewModel: MainViewModel,
     onOpenList: () -> Unit
 ) {
+    val context = LocalContext.current
     val context = LocalContext.current
     val loadState by viewModel.loadState.collectAsState()
     val fileName by viewModel.loadedFileName.collectAsState()
@@ -91,7 +93,7 @@ fun HomeScreen(
     val snackbar = remember { SnackbarHostState() }
     // 手动解密对话框
     var showDecryptDialog by remember { mutableStateOf(false) }
-    // 顶部菜单弹出的对话框
+    // 顶部Menu弹出的对话框
     var showSettings by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
@@ -103,17 +105,17 @@ fun HomeScreen(
         }
     }
 
-    // ---------- 应用内文件选择（替代 SAF OpenMultipleDocuments） ----------
+    // ---------- 应用内File选择（替代 SAF OpenMultipleDocuments） ----------
     val (storageGranted, requestStorage) = rememberStoragePermission()
     var showFilePicker by remember { mutableStateOf(false) }
     var showFolderPicker by remember { mutableStateOf(false) }
     var showPermDialog by remember { mutableStateOf(false) }
-    // 文件夹扫描选项（切换后重新扫描）
+    // File夹扫描选items（切换后重新扫描）
     var folderRecursive by remember { mutableStateOf(true) }
 
     LaunchedEffect(loadState) {
         val msg = when (val s = loadState) {
-            is LoadState.Failed -> "加载失败：${s.message}"
+            is LoadState.Failed -> "Load failed：${s.message}"
             else -> null
         }
         if (msg != null) snackbar.showSnackbar(msg)
@@ -125,14 +127,14 @@ fun HomeScreen(
                 title = { Text("AssetStudio") },
                 actions = {
                     IconButton(onClick = { menuOpen = true }) {
-                        Icon(Icons.Filled.MoreVert, contentDescription = "菜单")
+                        Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
                     }
                     DropdownMenu(
                         expanded = menuOpen,
                         onDismissRequest = { menuOpen = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("设置") },
+                            text = { Text("Settings") },
                             leadingIcon = { Icon(Icons.Filled.Settings, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
@@ -140,7 +142,7 @@ fun HomeScreen(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("关于") },
+                            text = { Text("About") },
                             leadingIcon = { Icon(Icons.Filled.Info, contentDescription = null) },
                             onClick = {
                                 menuOpen = false
@@ -166,7 +168,7 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(8.dp))
 
-            // ---------- 打开文件卡片 ----------
+            // ---------- 打开File卡片 ----------
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
@@ -176,12 +178,12 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        "打开 Unity 资源文件",
+                        "Open Unity asset file",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
-                        "支持 AssetBundle（.bundle/.unity3d）、序列化文件（.assets）、\n" +
+                        "Supports AssetBundle（.bundle/.unity3d）、Serialized files（.assets）、\n" +
                             "以及 gzip/brotli/zip 容器。可多选：.assets 与对应 .resS 一起选择。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
@@ -200,7 +202,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Filled.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(8.dp))
-                            Text("选择文件")
+                            Text("Select files")
                         }
                         OutlinedButton(
                             onClick = {
@@ -215,7 +217,7 @@ fun HomeScreen(
                         ) {
                             Icon(Icons.Filled.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(8.dp))
-                            Text("加载文件夹")
+                            Text("Load folder")
                         }
                     }
                 }
@@ -226,12 +228,12 @@ fun HomeScreen(
                 value = versionInput,
                 onValueChange = { versionInput = it },
                 label = { Text("Unity 版本（可选，如 2019.4.1f1）") },
-                placeholder = { Text("版本号被剥离的文件需要填写") },
+                placeholder = { Text("版本号被剥离的File需要填写") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
-            // ---------- 加载状态 ----------
+            // ---------- Load状态 ----------
             when (val s = loadState) {
                 is LoadState.Loading -> {
                     Card(modifier = Modifier.fillMaxWidth()) {
@@ -250,25 +252,25 @@ fun HomeScreen(
                                     maxLines = 2
                                 )
                             }
-                            // 批量加载：确定性进度条（当前/总数）
+                            // 批量Load：OK性进度 entries（当前/总数）
                             if (s.total > 0) {
                                 LinearProgressIndicator(
                                     progress = { s.progress ?: 0f },
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                            // 批量加载允许中途取消（保留已加载部分）
+                            // 批量Load允许中途Cancel (keep loaded)
                             if (s.cancellable) {
                                 TextButton(onClick = { viewModel.requestCancelLoad() }) {
-                                    Text("取消（保留已加载部分）")
+                                    Text("Cancel (keep loaded)")
                                 }
                             }
                         }
                     }
                 }
                 is LoadState.Loaded -> {
-                    // v1.10.0：主页只有一个概念——「一个资产库」。文件数/资产数/磁盘暂存数，
-                    // 批次、驻留、释放等内存概念全部退到幕后，用户无感
+                    // v1.10.0：主页只有一概念——「一Asset库」。File数/Asset数/磁盘暂存数，
+                    // 批次、驻留、释放等内存概念All退到幕后，用户无感
                     LoadedSummaryCard(
                         fileName = fileName,
                         fileCount = s.fileCount,
@@ -281,7 +283,7 @@ fun HomeScreen(
                             viewModel.clearAllSessions()
                         }
                     )
-                    // 文件夹批量加载汇总（成功/跳过/失败明细）
+                    // File夹批量Load汇总（Success/跳过/Failed明细）
                     if (folderSummary != null) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -298,7 +300,7 @@ fun HomeScreen(
                         }
                     }
 
-                    // 剩余文件提示卡：极少数超大文件内存一次装不下时，一键自动继续
+                    // 剩余File提示卡：极少数超大File内存一次装不下时，一键Automatically 继续
                     pendingRemaining?.let { pr ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -311,24 +313,24 @@ fun HomeScreen(
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Text(
-                                    "还有 ${pr.files.size} 个文件未装完",
+                                    "${pr.files.size} files remaining",
                                     style = MaterialTheme.typography.titleSmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Text(
-                                    "这些文件较大，手机内存一次装不下（防闪退保护自动暂停）。" +
-                                        "已列出的 ${assets.size} 个资产不受影响；点击下方按钮自动继续装载剩余文件，无需反复操作。",
+                                    "These files are too large to fit in memory at once (crash protection paused loading)." +
+                                        "The ${assets.size} listed assets are unaffected. Tap below to automatically continue loading the remaining files.",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                                 Button(
-                                    onClick = { viewModel.continueBatchLoad() },
+                                    onClick = { viewModel.continueBatchLoad(context) },
                                     enabled = loadState !is LoadState.Loading,
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Icon(Icons.Filled.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.size(8.dp))
-                                    Text("自动装完剩余 ${pr.files.size} 个文件")
+                                    Text("Automatically load the remaining ${pr.files.size} files")
                                 }
                             }
                         }
@@ -341,7 +343,7 @@ fun HomeScreen(
                             )
                         ) {
                             Text(
-                                "已自动解密：$decryptNote",
+                                "Automatically decrypted: $decryptNote",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(12.dp)
@@ -358,7 +360,7 @@ fun HomeScreen(
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "加载失败",
+                                "Load failed",
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
@@ -369,18 +371,18 @@ fun HomeScreen(
                                 fontFamily = FontFamily.Monospace
                             )
                             Text(
-                                "若文件为已知密钥加密的 bundle，可尝试手动解密。",
+                                "若File为已知密钥加密的 bundle，可Try manual decryption。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f)
                             )
                             OutlinedButton(onClick = { showDecryptDialog = true }) {
-                                Text("尝试手动解密")
+                                Text("Try manual decryption")
                             }
                         }
                     }
-                    // v1.10.2：加载失败不再顶掉已加载内容——之前失败分支只显示错误卡，
-                    // 用户已加载的资产库“凭空消失”，误以为内容丢了/新文件没显示。
-                    // 已有内容时错误卡下方照常显示汇总卡（可继续查看/导出）
+                    // v1.10.2：Load failed不再顶掉已Load内容——之前Failed分支只显示Error卡，
+                    // 用户已Load的Asset库“凭空消失”，误以为内容丢了/新File没显示。
+                    // 已有内容时Error卡下方照常显示汇总卡（可继续View/导出）
                     if (assets.isNotEmpty()) {
                         LoadedSummaryCard(
                             fileName = fileName,
@@ -399,9 +401,9 @@ fun HomeScreen(
                 LoadState.Idle -> {}
             }
 
-            // v1.10.0：批次管理卡已删除——批次是纯内部实现（自动分装/自动腾内存/
-            // 自动按需装载），用户界面上不再出现任何批次概念；资产查看唯一入口
-            // = 上方汇总卡「查看资产」，清空 = 汇总卡右上角按钮
+            // v1.10.0：批次管理卡已删除——批次Yes纯内部实现（Automatically 分装/Automatically 腾内存/
+            // Automatically 按需装载），用户界面上不再出现任何批次概念；AssetView唯一入口
+            // = 上方汇总卡「ViewAsset」，Clear = 汇总卡右上角按钮
 
             // ---------- 手动解密对话框 ----------
             if (showDecryptDialog) {
@@ -417,7 +419,7 @@ fun HomeScreen(
                 )
             }
 
-            // ---------- 应用内文件选择器（多选，加载 bundle/.assets/.resS） ----------
+            // ---------- 应用内File选择器（多选，Load bundle/.assets/.resS） ----------
             if (showFilePicker) {
                 FilePickerDialog(
                     allowMultiple = true,
@@ -432,7 +434,7 @@ fun HomeScreen(
                 )
             }
 
-            // ---------- 文件夹选择器（选目录 → 扫描 → 确认后批量加载） ----------
+            // ---------- File夹选择器（选目录 → 扫描 → 确认后批量Load） ----------
             if (showFolderPicker) {
                 FilePickerDialog(
                     pickDirectory = true,
@@ -445,7 +447,7 @@ fun HomeScreen(
                 )
             }
 
-            // ---------- 文件夹扫描确认对话框 ----------
+            // ---------- File夹扫描确认对话框 ----------
             val scan = folderScan
             if (scan != null) {
                 FolderLoadConfirmDialog(
@@ -453,7 +455,7 @@ fun HomeScreen(
                     recursive = folderRecursive,
                     onRecursiveChange = { checked ->
                         folderRecursive = checked
-                        // 切换后重扫（含/不含子文件夹的清单不同）
+                        // 切换后重扫（含/不含子File夹的清单不同）
                         viewModel.scanFolder(scan.folder, checked)
                     },
                     onDismiss = { viewModel.consumeFolderScan() },
@@ -462,7 +464,7 @@ fun HomeScreen(
                         viewModel.specifyUnityVersion = versionInput.trim()
                         viewModel.manager.specifyUnityVersion = versionInput.trim().ifEmpty { null }
                         viewModel.consumeFolderSummary()
-                        viewModel.loadFolder(scan)
+                        viewModel.loadFolder(scan, context)
                     }
                 )
             }
@@ -471,12 +473,12 @@ fun HomeScreen(
             if (showPermDialog) {
                 AlertDialog(
                     onDismissRequest = { showPermDialog = false },
-                    title = { Text("需要存储权限") },
+                    title = { Text("Storage permission required") },
                     text = {
                         Text(
-                            "浏览与读取手机存储中的文件需要「所有文件访问」权限。\n\n" +
-                                "点击「去授权」跳转系统设置页，找到本应用并开启" +
-                                "\"允许管理所有文件\"后返回即可。",
+                            "浏览与读取手机存储中的File需要「所有File访问」权限。\n\n" +
+                                "点击「Grant access」跳转系统Settings页，找到本应用并开启" +
+                                "\"Allow management of all files\"后Back即可。",
                             style = MaterialTheme.typography.bodySmall
                         )
                     },
@@ -484,15 +486,15 @@ fun HomeScreen(
                         TextButton(onClick = {
                             showPermDialog = false
                             requestStorage()
-                        }) { Text("去授权") }
+                        }) { Text("Grant access") }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showPermDialog = false }) { Text("取消") }
+                        TextButton(onClick = { showPermDialog = false }) { Text("Cancel") }
                     }
                 )
             }
 
-            // ---------- 设置对话框（MCP 服务器在此管理） ----------
+            // ---------- Settings对话框（MCP 服务器在此管理） ----------
             if (showSettings) {
                 SettingsDialog(
                     mcpStatus = mcpStatus,
@@ -503,7 +505,7 @@ fun HomeScreen(
                 )
             }
 
-            // ---------- 关于对话框 ----------
+            // ---------- About对话框 ----------
             if (showAbout) {
                 AboutDialog(onDismiss = { showAbout = false })
             }
@@ -511,12 +513,12 @@ fun HomeScreen(
             // ---------- 功能说明 ----------
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("主要功能", style = MaterialTheme.typography.titleMedium)
-                    FeatureRow(Icons.Filled.Inventory2, "资产浏览", "解析 bundle 内全部资产，按类型筛选、搜索；长按分类标签可置顶排序")
-                    FeatureRow(Icons.Filled.Image, "贴图预览", "DXT/BC/ETC/ASTC/PVRTC 等格式硬解预览")
-                    FeatureRow(Icons.Filled.SwapHoriz, "贴图 / 模型替换", "PNG 替换贴图、OBJ 替换模型，重打包保存")
-                    FeatureRow(Icons.Filled.ViewInAr, "渲染信息", "材质 / 着色器结构化文本查看")
-                    FeatureRow(Icons.Filled.Rule, "资产导出", "PNG / OBJ / WAV / 文本 / TypeTree 转储")
+                    Text("Features", style = MaterialTheme.typography.titleMedium)
+                    FeatureRow(Icons.Filled.Inventory2, "Asset browser", "解析 bundle 内AllAsset，按TypeFilter、Search；长按分类标签可置顶排序")
+                    FeatureRow(Icons.Filled.Image, "Texture preview", "DXT/BC/ETC/ASTC/PVRTC 等Format硬解预览")
+                    FeatureRow(Icons.Filled.SwapHoriz, "Texture / model replacement", "PNG ReplaceTexture、OBJ Replace model，重打包Save")
+                    FeatureRow(Icons.Filled.ViewInAr, "Render information", "Material / Shader结构化TextView")
+                    FeatureRow(Icons.Filled.Rule, "Asset export", "PNG / OBJ / WAV / Text / TypeTree dump")
                 }
             }
 
@@ -526,9 +528,9 @@ fun HomeScreen(
 }
 
 /*
- * 已加载汇总卡（v1.10.0「无感加载」）：用户视角只有一个资产库——
- * 标题 = 文件数 · 资产数；内存装不下的部分显示为「暂存磁盘」一行轻提示。
- * 批次/驻留/释放等实现细节全部隐形；右上角提供一键清空。
+ * 已Load汇总卡（v1.10.0「无感Load」）：用户视角只有一Asset库——
+ * 标题 = File数 · Asset数；内存装不下的部分显示为「暂存磁盘」一行轻提示。
+ * 批次/驻留/释放等实现细节All隐形；右上角提供一键Clear。
  */
 @Composable
 private fun LoadedSummaryCard(
@@ -547,37 +549,37 @@ private fun LoadedSummaryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    fileName.ifEmpty { "已加载" },
+                    fileName.ifEmpty { "已Load" },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     modifier = Modifier.weight(1f)
                 )
                 TextButton(onClick = onClearAll) {
-                    Text("清空")
+                    Text("Clear")
                 }
             }
             if (lazyCount > 0) {
                 Text(
-                    "其中 $lazyCount 项暂存磁盘（内存一次装不下全部）：列表、搜索、导出均不受影响，" +
-                        "点开某项时自动从磁盘载入（约 1 秒）。",
+                    "$lazyCount items are stored on disk because they do not fit in memory at once. The list, search, and export remain available. " +
+                        "The item is loaded from disk when opened (about 1 second).",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
-            InfoRow("序列化文件", "$fileCount 个")
-            InfoRow("资产总数", "${assets.size} 个")
+            InfoRow("Serialized files", "$fileCount ")
+            InfoRow("Total assets", "${assets.size} ")
             val textures = assets.count { it.type.value == 28 }
             val sprites = assets.count { it.type.value == 213 || it.type.value == 68 }
             val audios = assets.count { it.type.value == 83 }
             val texts = assets.count { it.type.value == 49 }
-            InfoRow("贴图 / 精灵", "$textures / $sprites")
-            InfoRow("音频 / 文本", "$audios / $texts")
+            InfoRow("Textures / sprites", "$textures / $sprites")
+            InfoRow("Audio / text", "$audios / $texts")
             if (errors.isNotEmpty()) {
-                InfoRow("解析警告", "${errors.size} 条（部分对象可能不可用）")
+                InfoRow("Parse warnings", "${errors.size}  entries（部分对象可能不可用）")
             }
-            // 唯一入口：全部资产的统一列表
+            // 唯一入口：AllAsset的统一列表
             Button(onClick = onOpenList, modifier = Modifier.fillMaxWidth()) {
-                Text("查看资产（${assets.size} 项）")
+                Text("View assets (${assets.size})")
             }
         }
     }
@@ -585,8 +587,8 @@ private fun LoadedSummaryCard(
 
 /*
  * v1.10.0：BatchListCard / BatchCardItem 已删除。
- * 批次退化为 AssetsManager 内部的分装单位（自动分装、自动腾内存、索引常驻、
- * 点开自动按需装载），不再有任何用户可见的批次界面。
+ * 批次退化为 AssetsManager 内部的分装单位（Automatically 分装、Automatically 腾内存、索引常驻、
+ * 点开Automatically 按需装载），不再有任何用户可见的批次界面。
  */
 
 @Composable
@@ -614,9 +616,9 @@ private fun FeatureRow(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
 }
 
 /*
- * 设置对话框：MCP 服务器（AI 助手接入）的启动 / 停止与状态展示。
- * mcpStatus 仅在服务器真正运行时非空：null → 显示说明 + 「启动服务器」；
- * 非 null → 显示运行状态（含连接地址）+ 「停止服务器」。启动中禁用按钮防重复点击。
+ * Settings对话框：MCP 服务器（AI 助手接入）的启动 / 停止与状态展示。
+ * mcpStatus 仅在服务器真正运行时非空：null → 显示说明 + 「Start server」；
+ * 非 null → 显示运行状态（含连接地址）+ 「Stop server」。启动中禁用按钮防重复点击。
  */
 @Composable
 private fun SettingsDialog(
@@ -628,20 +630,20 @@ private fun SettingsDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("设置") },
+        title = { Text("Settings") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("AI 助手接入（MCP）", style = MaterialTheme.typography.titleSmall)
+                Text("AI assistant integration (MCP)", style = MaterialTheme.typography.titleSmall)
                 if (mcpStatus == null) {
                     Text(
                         "启动内置 MCP 服务器后，AI 助手可通过局域网查询 / 导出" +
-                            "当前已加载的资产（需与手机连接同一 Wi-Fi）。",
+                            "当前已Load的Asset（需与手机连接同一 Wi-Fi）。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (mcpStarting) {
                         Text(
-                            "正在启动…",
+                            "Starting…",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -661,38 +663,38 @@ private fun SettingsDialog(
                 TextButton(
                     onClick = onStartMcp,
                     enabled = !mcpStarting
-                ) { Text(if (mcpStarting) "启动中…" else "启动服务器") }
+                ) { Text(if (mcpStarting) "Starting…" else "Start server") }
             } else {
-                TextButton(onClick = onStopMcp) { Text("停止服务器") }
+                TextButton(onClick = onStopMcp) { Text("Stop server") }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("关闭") }
+            TextButton(onClick = onDismiss) { Text("Close") }
         }
     )
 }
 
 /*
- * 关于对话框：版本与功能简介。
+ * About对话框：版本与功能简介。
  */
 @Composable
 private fun AboutDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("关于 AssetStudio") },
+        title = { Text("About AssetStudio") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("版本 v1.10.2", style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Android 端 Unity 资产查看 / 导出 / 替换工具，支持 AssetBundle、" +
-                        "序列化文件与 gzip/brotli/zip 容器，常见加密 bundle 自动探测解密。",
+                    "Android 端 Unity AssetView / 导出 / Replace工具，Supports AssetBundle、" +
+                        "Serialized files与 gzip/brotli/zip 容器，常见加密 bundle Automatically 探测解密。",
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    "功能：整文件夹无感加载（内存装不下自动转磁盘暂存、点开秒载），" +
-                        "贴图 / 精灵 / 网格预览，PNG / OBJ / WAV / 文本导出，" +
-                        "PNG 替换贴图、OBJ 替换模型并重打包，材质与着色器结构化查看，" +
-                        "内置 MCP 服务器供 AI 助手远程查询导出。",
+                    "Features: load entire folders with automatic disk fallback when memory is insufficient; " +
+                        "Textures / sprites / Mesh预览，PNG / OBJ / WAV / Text导出，" +
+                        "PNG ReplaceTexture、OBJ Replace model并重打包，Material与Shader结构化View，" +
+                        "Built-in MCP server for remote asset queries and exports by AI assistants.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -704,18 +706,18 @@ private fun AboutDialog(onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("确定") }
+            TextButton(onClick = onDismiss) { Text("OK") }
         }
     )
 }
 
 /*
- * 文件夹加载确认对话框：展示扫描结果与风险提示，用户确认后批量加载。
+ * File夹Load确认对话框：展示扫描结果与风险提示，用户确认后批量Load。
  *
  * 防崩溃信息透明化：
- * - 待加载文件数 / 总大小 / 内存预算（超了会在加载时逐个跳过大文件）
- * - 单文件超限、数量截断等警示
- * - "包含子文件夹"开关（切换即重扫）
+ * - 待LoadFile数 / 总Size / 内存预算（超了会在Load时逐跳过大File）
+ * - 单File超限、数量截断等警示
+ * - "Include subfolders"开关（切换即重扫）
  */
 @Composable
 private fun FolderLoadConfirmDialog(
@@ -728,7 +730,7 @@ private fun FolderLoadConfirmDialog(
     val memCap = com.assetstudio.mobile.MainViewModel.folderMemCapBytes()
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("加载整个文件夹") },
+        title = { Text("Load entire folder") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
@@ -746,20 +748,20 @@ private fun FolderLoadConfirmDialog(
                 }
                 if (scan.files.isEmpty()) {
                     Text(
-                        "未找到可加载的资源文件（bundle / unity3d / assets / zip / resS …）。\n" +
-                            "可尝试开启「包含子文件夹」。",
+                        "未找到可Load的资源File（bundle / unity3d / assets / zip / resS …）。\n" +
+                            "可尝试开启「Include subfolders」。",
                         style = MaterialTheme.typography.bodySmall
                     )
                 } else {
-                    InfoRow("待加载文件", "${scan.files.size} 个")
-                    InfoRow("总大小", MainViewModel.formatBytes(scan.totalBytes))
+                    InfoRow("待LoadFile", "${scan.files.size} ")
+                    InfoRow("总Size", MainViewModel.formatBytes(scan.totalBytes))
                     if (scan.files.size < scan.scannedCount) {
-                        InfoRow("目录内文件总数", "${scan.scannedCount} 个（已自动过滤非资源文件）")
+                        InfoRow("目录内File总数", "${scan.scannedCount} （已Automatically 过滤非资源File）")
                     }
-                    InfoRow("内存预算", MainViewModel.formatBytes(memCap) + "（超出部分自动跳过大文件）")
+                    InfoRow("内存预算", MainViewModel.formatBytes(memCap) + "（超出部分Automatically 跳过大File）")
                     if (scan.skippedTooBig.isNotEmpty()) {
                         Text(
-                            "以下 ${scan.skippedTooBig.size} 个文件超过单文件上限（768MB）将被跳过：\n" +
+                            "以下 ${scan.skippedTooBig.size} File超过单File上限（768MB）将被跳过：\n" +
                                 scan.skippedTooBig.take(3).joinToString("、") +
                                 if (scan.skippedTooBig.size > 3) " 等" else "",
                             color = MaterialTheme.colorScheme.error,
@@ -768,21 +770,21 @@ private fun FolderLoadConfirmDialog(
                     }
                     if (scan.truncatedCount > 0) {
                         Text(
-                            "文件数超过 ${MainViewModel.MAX_FOLDER_FILES}，将只加载较小的 ${scan.files.size} 个。",
+                            "File数超过 ${MainViewModel.MAX_FOLDER_FILES}，将只Load较小的 ${scan.files.size} 。",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else if (scan.overBudgetHint(memCap)) {
                         Text(
-                            "总大小超过内存预算：加载会自动在预算内进行，超出的大文件将被跳过。\n" +
-                                "如需全部加载，请分批选择子文件夹。",
+                            "总Size超过内存预算：Load会Automatically 在预算内进行，超出的大File将被跳过。\n" +
+                                "如需AllLoad，请分批选择子File夹。",
                             color = MaterialTheme.colorScheme.tertiary,
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
-                        // 没有截断、没有超限：明确告知全部加载
+                        // 没有截断、没有超限：明确告知AllLoad
                         Text(
-                            "${scan.files.size} 个文件全部在内存预算内，将全部加载。",
+                            "${scan.files.size} FileAll在内存预算内，将AllLoad。",
                             color = MaterialTheme.colorScheme.primary,
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -792,10 +794,10 @@ private fun FolderLoadConfirmDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Switch(checked = recursive, onCheckedChange = onRecursiveChange)
-                        Text("包含子文件夹", style = MaterialTheme.typography.bodyMedium)
+                        Text("Include subfolders", style = MaterialTheme.typography.bodyMedium)
                     }
                     Text(
-                        "加载过程逐个进行、可随时取消；单个文件损坏或过大只跳过该文件，不影响其余。",
+                        "Load过程逐进行、可随时Cancel；单File损坏或过大只跳过该File，不影响其余。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -806,19 +808,19 @@ private fun FolderLoadConfirmDialog(
             TextButton(
                 onClick = onConfirm,
                 enabled = scan.files.isNotEmpty()
-            ) { Text("开始加载") }
+            ) { Text("Start loading") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }
 
 /*
  * 手动解密对话框：已知密钥的加密 bundle 兜底入口。
- * - XOR：循环多字节密钥（hex），也可只填 2 位十六进制做单字节
- * - AES-ECB / AES-CBC：密钥长度自动识别 128/192/256（hex 输入 32/48/64 位）
- * - 前缀偏移：先跳过文件头部若干字节再解密（部分游戏仅加密头部之后的数据）
+ * - XOR：循环多字节Key (hex)，也可只填 2 位十六进制做单字节
+ * - AES-ECB / AES-CBC：密钥长度Automatically 识别 128/192/256（hex 输入 32/48/64 位）
+ * - 前缀偏移：先跳过File头部若干字节再解密（部分游戏仅加密头部之后的数据）
  */
 @Composable
 private fun ManualDecryptDialog(
@@ -833,12 +835,12 @@ private fun ManualDecryptDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("手动解密加载") },
+        title = { Text("Manual decryption") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "自动探测无法识别该文件时，若你知道游戏使用的加密密钥，" +
-                        "可在此解密后重新加载。密钥用十六进制表示（如 0d0a1b2c 或多字节循环密钥）。",
+                    "Automatically 探测无法识别该File时，若你知道游戏使用的加密密钥，" +
+                        "可在此解密后重新Load。密钥用十六进制表示（如 0d0a1b2c 或多字节循环密钥）。",
                     style = MaterialTheme.typography.bodySmall
                 )
                 OutlinedTextField(
@@ -847,7 +849,7 @@ private fun ManualDecryptDialog(
                         keyInput = it
                         keyError = null
                     },
-                    label = { Text("密钥（hex）") },
+                    label = { Text("Key (hex)") },
                     placeholder = { Text("例：1a2b3c4d 或 1a") },
                     isError = keyError != null,
                     supportingText = keyError?.let { { Text(it) } },
@@ -890,12 +892,12 @@ private fun ManualDecryptDialog(
                     val prefix = prefixInput.toIntOrNull() ?: 0
                     onConfirm(hex, EncryptedBundleDecoder.DecryptMode.entries[modeIndex], prefix)
                 } catch (e: Exception) {
-                    keyError = "密钥格式错误：${e.message}"
+                    keyError = "密钥FormatError：${e.message}"
                 }
-            }) { Text("解密并加载") }
+            }) { Text("Decrypt and load") }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }

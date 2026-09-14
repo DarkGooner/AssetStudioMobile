@@ -25,13 +25,13 @@ import androidx.compose.ui.unit.dp
 import java.io.File
 
 /*
- * 快捷访问（收藏文件夹）：应用内文件管理器的公共组件。
+ * 快捷访问（收藏File夹）：应用内File管理器的公共Component。
  *
- * - QuickAccessStore：SharedPreferences 持久化（保持添加顺序，容量上限 12 条）
- * - QuickAccessRow：横向滚动的收藏夹条
- *     · 点击条目 → 直接跳转该目录
- *     · 长按条目 → 从快捷访问移除
- * 文件夹列表中「长按文件夹」即可添加（见 FilePickerDialog / FileSaveDialog）。
+ * - QuickAccessStore：SharedPreferences 持久化（保持添加顺序，容量上限 12  entries）
+ * - QuickAccessRow：横向滚动的收藏夹 entries
+ *     · 点击 entries目 → 直接跳转该目录
+ *     · 长按 entries目 → 从快捷访问Remove
+ * File夹列表中「长按File夹」即可添加（见 FilePickerDialog / FileSaveDialog）。
  */
 
 /** 快捷访问持久化存储 */
@@ -54,21 +54,21 @@ object QuickAccessStore {
         return result
     }
 
-    /** 读取收藏目录（过滤已不存在的路径） */
+    /** 读取收藏目录（过滤已不存在的Path） */
     fun load(context: Context): List<String> {
         val raw = prefs(context).getString(KEY_PATHS, null) ?: return emptyList()
         return raw.split('\n')
             .filter { it.isNotBlank() && File(it).isDirectory }
     }
 
-    /** 添加目录（去重；最新在前；超上限淘汰最旧的），返回更新后的列表 */
+    /** 添加目录（去重；最新在前；超上限淘汰最旧的），Back更新后的列表 */
     fun add(context: Context, path: String): List<String> {
         val updated = merge(load(context), path)
         prefs(context).edit().putString(KEY_PATHS, updated.joinToString("\n")).apply()
         return updated
     }
 
-    /** 移除目录，返回更新后的列表 */
+    /** Remove目录，Back更新后的列表 */
     fun remove(context: Context, path: String): List<String> {
         val updated = load(context).filter { it != path }
         prefs(context).edit().putString(KEY_PATHS, updated.joinToString("\n")).apply()
@@ -77,10 +77,10 @@ object QuickAccessStore {
 }
 
 /**
- * 快捷访问条：横向滚动的收藏目录胶囊。
- * @param entries 收藏的目录绝对路径（按最近添加优先）
- * @param onJump 点击条目跳转
- * @param onRemove 长按条目移除
+ * 快捷访问 entries：横向滚动的收藏目录胶囊。
+ * @param entries 收藏的目录绝对Path（按最近添加优先）
+ * @param onJump 点击 entries目跳转
+ * @param onRemove 长按 entries目Remove
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -92,7 +92,7 @@ fun QuickAccessRow(
     if (entries.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            "快捷访问（长按文件夹添加）",
+            "快捷访问（长按File夹添加）",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

@@ -3,6 +3,9 @@
 
     <!-- MCP 服务器需要：创建/监听网络套接字（缺失时 bind 抛 EPERM） -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <!-- 应用内文件管理器所需：
          Android 11+ 需所有文件访问权（MANAGE_EXTERNAL_STORAGE，需用户在设置页手动授予）
@@ -23,6 +26,11 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AssetStudio">
+
+        <service
+            android:name=".BackgroundProcessingService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
 
         <activity
             android:name=".MainActivity"

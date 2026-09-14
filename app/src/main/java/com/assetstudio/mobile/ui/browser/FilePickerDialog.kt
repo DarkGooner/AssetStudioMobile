@@ -43,17 +43,17 @@ import androidx.compose.ui.unit.dp
 import java.io.File
 
 /*
- * 应用内文件选择器：替代系统 SAF「打开文件」对话框。
+ * 应用内File选择器：替代系统 SAF「OpenFile」对话框。
  *
- * 与 FileSaveDialog 配对：一个负责选文件（加载 bundle / 替换贴图 / 替换模型），
- * 一个负责存文件。全部走 java.io.File 直读直写，绕开 SAF 的 MIME 陷阱。
+ * 与 FileSaveDialog 配对：一负责选File（Load bundle / ReplaceTexture / Replace model），
+ * 一负责存File。All走 java.io.File 直读直写，绕开 SAF 的 MIME 陷阱。
  *
  * 功能：
  * - 从外部存储根逐级浏览（不可读时回退应用专属目录）
- * - 单选：点文件即返回；多选：勾选后底部「打开 (N)」确认
+ * - 单选：点File即Back；多选：勾选后底部「Open (N)」确认
  * - 可选扩展名过滤（小写比较；null = 不过滤）
- * - 选文件夹模式（pickDirectory）：只列目录，确认返回当前目录
- * - 快捷访问：长按文件夹收藏，点击收藏条直达目录（长按收藏条移除）
+ * - 选File夹模式（pickDirectory）：只列目录，确认Back当前目录
+ * - 快捷访问：长按File夹收藏，点击收藏 entries直达目录（长按收藏 entriesRemove）
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -76,33 +76,33 @@ fun FilePickerDialog(
     var dirs by remember { mutableStateOf<List<File>>(emptyList()) }
     var files by remember { mutableStateOf<List<File>>(emptyList()) }
     var listError by remember { mutableStateOf<String?>(null) }
-    // 多选已勾选的文件绝对路径
+    // 多选已勾选的File绝对Path
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     // 快捷访问（持久化收藏目录）
     var quickAccess by remember { mutableStateOf(QuickAccessStore.load(context)) }
 
-    /** 长按文件夹 → 收藏到快捷访问 */
+    /** 长按File夹 → 收藏到快捷访问 */
     fun addToQuickAccess(dir: File) {
         quickAccess = QuickAccessStore.add(context, dir.absolutePath)
-        Toast.makeText(context, "已添加到快捷访问：${dir.name}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Added to Quick Access：${dir.name}", Toast.LENGTH_SHORT).show()
     }
 
-    /** 点击快捷访问条 → 跳转（目录被删则移除该收藏） */
+    /** 点击快捷访问 entries → 跳转（目录被删则Remove该收藏） */
     fun jumpTo(path: String) {
         val dir = File(path)
         if (dir.isDirectory) {
             currentDir = dir
         } else {
             quickAccess = QuickAccessStore.remove(context, path)
-            Toast.makeText(context, "目录已不存在，已从快捷访问移除", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Directory no longer exists; removed from Quick Access", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // 目录列表（进入目录后重刷）；选文件夹模式不列文件
+    // 目录列表（进入目录后重刷）；选File夹模式不列File
     LaunchedEffect(currentDir, pickDirectory) {
         val listed = currentDir.listFiles()
         if (listed == null) {
-            listError = "无法读取该目录（权限不足？）"
+            listError = "Unable to read directory (permission denied?)"
             dirs = emptyList()
             files = emptyList()
         } else {
@@ -122,25 +122,25 @@ fun FilePickerDialog(
         title = {
             Text(
                 when {
-                    pickDirectory -> "选择文件夹"
-                    allowMultiple -> "选择文件（可多选）"
-                    else -> "选择文件"
+                    pickDirectory -> "Select folder"
+                    allowMultiple -> "Select files (multiple)"
+                    else -> "Select file"
                 }
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // ---------- 快捷访问条 ----------
+                // ---------- 快捷访问 entries ----------
                 QuickAccessRow(
                     entries = quickAccess,
                     onJump = { jumpTo(it) },
                     onRemove = { path ->
                         quickAccess = QuickAccessStore.remove(context, path)
-                        Toast.makeText(context, "已从快捷访问移除：${File(path).name}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Removed from Quick Access：${File(path).name}", Toast.LENGTH_SHORT).show()
                     }
                 )
 
-                // ---------- 路径栏 + 返回上级 ----------
+                // ---------- Path栏 + Go up ----------
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -149,7 +149,7 @@ fun FilePickerDialog(
                         onClick = { currentDir.parentFile?.let { currentDir = it } },
                         enabled = currentDir.parentFile != null
                     ) {
-                        Icon(Icons.Filled.ArrowUpward, contentDescription = "返回上级")
+                        Icon(Icons.Filled.ArrowUpward, contentDescription = "Go up")
                     }
                     Text(
                         currentDir.absolutePath,
@@ -178,7 +178,7 @@ fun FilePickerDialog(
                 ) {
                     if (dirs.isEmpty() && files.isEmpty() && listError == null) {
                         Text(
-                            if (pickDirectory) "（无子文件夹）" else "（无匹配文件）",
+                            if (pickDirectory) "（无子File夹）" else "（无匹配File）",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(12.dp)
@@ -284,7 +284,7 @@ fun FilePickerDialog(
             when {
                 pickDirectory -> {
                     Button(onClick = { onConfirm(listOf(currentDir)) }) {
-                        Text("选择此文件夹")
+                        Text("Select this folder")
                     }
                 }
                 allowMultiple -> {
@@ -295,13 +295,13 @@ fun FilePickerDialog(
                         },
                         enabled = selected.isNotEmpty()
                     ) {
-                        Text("打开 (${selected.size})")
+                        Text("Open (${selected.size})")
                     }
                 }
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("取消") }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }

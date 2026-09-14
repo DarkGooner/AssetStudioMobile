@@ -53,12 +53,12 @@ import kotlin.math.sqrt
  * Mesh 实体预览：纯 Kotlin 软件光栅化（无 OpenGL 依赖）。
  *
  * 提取阶段（Default 线程，一次性）：
- *   三角形采样（上限 4 万个，超出降采样）→ 引用顶点紧凑化 → 归一化到 [-0.9, 0.9]³
+ *   triangles采样（上限 4 万，超出降采样）→ 引用vertices紧凑化 → 归一化到 [-0.9, 0.9]³
  *
  * 渲染阶段（每帧，Default 线程）：
- *   yaw/pitch 旋转 → 正交投影 → 逐三角形边函数光栅化：
+ *   yaw/pitch 旋转 → 正交投影 → 逐triangles边函数光栅化：
  *   - z-buffer 逐像素消隐（正确处理任意凹凸几何）
- *   - 面法线自动朝向相机（兼容任意环绕方向，开放网格也能正确着色）
+ *   - 面法线Automatically 朝向相机（兼容任意环绕方向，开放Mesh也能正确着色）
  *   - Lambert 定向光 + 环境光（0.22 ~ 1.0）
  *   - 双 Bitmap 交替写入，避免渲染线程写像素与 UI 绘制读像素的撕裂
  *
@@ -67,25 +67,25 @@ import kotlin.math.sqrt
 
 /** 预览几何数据（已归一化、已紧凑化） */
 class MeshGeometry(
-    /** 顶点坐标（x,y,z 交错，已居中归一化） */
+    /** vertices坐标（x,y,z 交错，已居中归一化） */
     val positions: FloatArray,
-    /** 三角形顶点索引（紧凑化后，3 个一组） */
+    /** trianglesvertices索引（紧凑化后，3 一组） */
     val triangles: IntArray,
-    /** 原始顶点总数 */
+    /** 原始vertices总数 */
     val vertexCount: Int,
-    /** 原始三角形总数 */
+    /** 原始triangles总数 */
     val triangleCount: Int,
     /** 降采样比例（1.0 = 全量） */
     val sampleRatio: Float
 )
 
-/** 参与渲染的三角形上限（超出自动降采样，保证手机上流畅） */
+/** 参与渲染的triangles上限（超出Automatically 降采样，保证手机上流畅） */
 private const val MAX_TRIANGLES = 40_000
 
 /** 离屏渲染分辨率（性能与清晰度的平衡点，绘制时双线性放大） */
 private const val RENDER_SIZE = 512
 
-/** 从 Mesh 提取实体渲染几何；无顶点/索引数据时返回 null */
+/** 从 Mesh 提取实体渲染几何；无vertices/索引数据时Back null */
 fun extractMeshGeometry(mesh: Mesh): MeshGeometry? {
     val vertices = mesh.m_Vertices ?: return null
     val indexList = mesh.m_Indices
@@ -94,7 +94,7 @@ fun extractMeshGeometry(mesh: Mesh): MeshGeometry? {
     val totalTris = indexList.size / 3
     val stride = max(1, ceil(totalTris / MAX_TRIANGLES.toDouble()).toInt())
 
-    // 采样有效三角形（索引越界 / 退化 / 非有限坐标全部跳过）
+    // 采样有效triangles（索引越界 / 退化 / 非有限坐标All跳过）
     val cap = minOf(totalTris, MAX_TRIANGLES)
     val raw = IntArray(cap * 3)
     var count = 0
@@ -116,7 +116,7 @@ fun extractMeshGeometry(mesh: Mesh): MeshGeometry? {
     }
     if (count == 0) return null
 
-    // 引用顶点紧凑化
+    // 引用vertices紧凑化
     val used = sortedSetOf<Int>()
     for (i in 0 until count * 3) used.add(raw[i])
     val remap = HashMap<Int, Int>(used.size * 2)
@@ -158,7 +158,7 @@ fun extractMeshGeometry(mesh: Mesh): MeshGeometry? {
     )
 }
 
-/** 三个顶点共 9 个分量均为有限值 */
+/** 三vertices共 9 分量均为有限值 */
 private fun triangleFinite(v: FloatArray, a: Int, b: Int, c: Int): Boolean {
     for (base in intArrayOf(a * 3, b * 3, c * 3)) {
         for (j in 0 until 3) {
@@ -173,7 +173,7 @@ private fun triangleFinite(v: FloatArray, a: Int, b: Int, c: Int): Boolean {
 
 /**
  * 实体渲染器：z-buffer + Lambert 光照。
- * 一个 MeshGeometry 对应一个实例（内部缓存旋转缓冲），可反复 render()。
+ * 一 MeshGeometry 对应一实例（内部缓存旋转缓冲），可反复 render()。
  */
 private class SolidRenderer(private val geometry: MeshGeometry) {
 
@@ -220,7 +220,7 @@ private class SolidRenderer(private val geometry: MeshGeometry) {
             return out
         }
 
-        // ---------- 1. 旋转全部顶点 ----------
+        // ---------- 1. 旋转Allvertices ----------
         val cosY = cos(yaw); val sinY = sin(yaw)
         val cosP = cos(pitch); val sinP = sin(pitch)
         val pos = geometry.positions
@@ -250,7 +250,7 @@ private class SolidRenderer(private val geometry: MeshGeometry) {
             val i1 = tris[t * 3 + 1]
             val i2 = tris[t * 3 + 2]
 
-            // ---------- 2. 面法线（法线自动朝向相机，兼容任意环绕方向） ----------
+            // ---------- 2. 面法线（法线Automatically 朝向相机，兼容任意环绕方向） ----------
             val ax = vx[i0]; val ay = vy[i0]; val az = vz[i0]
             val bx = vx[i1]; val by = vy[i1]; val bz = vz[i1]
             val cxx = vx[i2]; val cyy = vy[i2]; val czz = vz[i2]
@@ -276,7 +276,7 @@ private class SolidRenderer(private val geometry: MeshGeometry) {
             val x2s = ccx + cxx * half; val y2s = ccy - cyy * half; val z2 = czz
 
             val area = (x1s - x0) * (y2s - y0) - (y1s - y0) * (x2s - x0)
-            if (area > -1e-6f && area < 1e-6f) continue // 退化三角形
+            if (area > -1e-6f && area < 1e-6f) continue // 退化triangles
             val invArea = 1f / area
 
             // ---------- 5. 边函数光栅化（包围盒 + 增量步进） ----------
@@ -289,7 +289,7 @@ private class SolidRenderer(private val geometry: MeshGeometry) {
             val iy1 = min(sizeMax, ceil(maxy).toInt())
             if (ix0 > ix1 || iy0 > iy1) continue
 
-            // 像素中心 (ix+0.5, iy+0.5) 处的三个边函数初值
+            // 像素中心 (ix+0.5, iy+0.5) 处的三边函数初值
             val px = ix0 + 0.5f
             val py = iy0 + 0.5f
             var w0r = (x2s - x1s) * (py - y1s) - (y2s - y1s) * (px - x1s)
@@ -335,7 +335,7 @@ private class SolidRenderer(private val geometry: MeshGeometry) {
     }
 }
 
-// ============================ Compose 组件 ============================
+// ============================ Compose Component ============================
 
 @Composable
 fun MeshPreview(mesh: Mesh) {
@@ -401,8 +401,8 @@ fun MeshPreview(mesh: Mesh) {
                 ) {
                     Text(
                         if (mesh.m_Vertices == null || mesh.m_Indices.isEmpty())
-                            "该网格无顶点/索引数据，无法预览"
-                        else "正在提取网格…",
+                            "This mesh has no vertex/index data and cannot be previewed"
+                        else "Extracting mesh…",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -441,13 +441,13 @@ fun MeshPreview(mesh: Mesh) {
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "拖动旋转 · ${g.vertexCount} 顶点 / ${g.triangleCount} 三角形",
+                        "Drag to rotate · ${g.vertexCount} vertices / ${g.triangleCount} triangles",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (g.sampleRatio < 1f) {
                         Text(
-                            "已降采样 ${(g.sampleRatio * 100).toInt()}%",
+                            "Downsampled ${(g.sampleRatio * 100).toInt()}%",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.tertiary
                         )
