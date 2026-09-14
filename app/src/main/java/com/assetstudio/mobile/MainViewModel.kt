@@ -112,9 +112,6 @@ data class FolderScanResult(
 
 class MainViewModel : ViewModel() {
 
-    /** Application context used only to control the foreground processing service. */
-    private var backgroundContext: Context? = null
-
     /**
      * 当前活跃批次的解析器（v1.8.0 批次架构）。
      *
@@ -202,8 +199,6 @@ class MainViewModel : ViewModel() {
 
     fun loadUris(context: Context, uris: List<Uri>) {
         if (uris.isEmpty()) return
-        backgroundContext = context.applicationContext
-        BackgroundProcessingService.start(context, "Loading Unity assets")
         lastUris = uris
         lastFiles = emptyList()
         cancelLoadRequested = false
@@ -277,7 +272,6 @@ class MainViewModel : ViewModel() {
     /** 应用内文件管理器选择的文件（File 直读，不经 SAF） */
     fun loadFiles(files: List<java.io.File>) {
         if (files.isEmpty()) return
-        backgroundContext?.let { BackgroundProcessingService.start(it, "Loading Unity assets") }
         lastFiles = files
         lastUris = emptyList()
         cancelLoadRequested = false
@@ -590,14 +584,12 @@ class MainViewModel : ViewModel() {
      *    查看的资产列表（见 [chainLoadBatches]）；
      * 4. 全程可取消（取消后已完成批次保留，剩余文件可继续分批加载）。
      */
-    fun loadFolder(scan: FolderScanResult, context: Context) {
+    fun loadFolder(scan: FolderScanResult) {
         if (scan.files.isEmpty()) {
             _loadState.value = LoadState.Failed("文件夹中没有可加载的资源文件")
             return
         }
         cancelLoadRequested = false
-        backgroundContext = context.applicationContext
-        BackgroundProcessingService.start(context, "Loading Unity assets")
         lastFiles = scan.files
         lastUris = emptyList()
         _folderScan.value = null
@@ -608,15 +600,13 @@ class MainViewModel : ViewModel() {
     }
 
     /** 继续分批加载剩余文件（此前链式加载被取消/中断） */
-    fun continueBatchLoad(context: Context) {
+    fun continueBatchLoad() {
         val pending = _pendingRemainingFiles.value ?: return
         if (pending.files.isEmpty()) {
             _pendingRemainingFiles.value = null
             return
         }
         cancelLoadRequested = false
-        backgroundContext = context.applicationContext
-        BackgroundProcessingService.start(context, "Continuing Unity asset loading")
         viewModelScope.launch {
             chainLoadBatches(pending.files, pending.folderName, pending.nextBatchNo, resumed = true)
         }
@@ -859,11 +849,8 @@ class MainViewModel : ViewModel() {
             // v1.9.0：驱逐只把旧批次对象变懒（索引保留），统一列表不丢条目
             withContext(Dispatchers.IO) { evictSessionsForNewBatch() }
             // v1.10.0：对用户只讲「第几个文件」——内部换批（腾内存）完全隐形
-            backgroundContext?.let {
-                BackgroundProcessingService.update(it, "Loading $doneBefore/$grandTotal files…")
-            }
             _loadState.value = LoadState.Loading(
-                "Loading $doneBefore/$grandTotal …",
+                "正在加载 $doneBefore/$grandTotal …",
                 progress = doneBefore.toFloat() / grandTotal,
                 current = doneBefore, total = grandTotal, cancellable = true
             )
@@ -1266,8 +1253,7 @@ class MainViewModel : ViewModel() {
         originKey: String
     ) {
         if (name == null) {
-            _loadState.value = LoadState.Failed(errors.firstOrNull() ?: "Unknown error")
-            backgroundContext?.let { BackgroundProcessingService.stop(it) }
+            _loadState.value = LoadState.Failed(errors.firstOrNull() ?: "未知错误")
             return
         }
         val items = collectAssets(m)
@@ -1284,7 +1270,6 @@ class MainViewModel : ViewModel() {
             // 已加载过内容时与标题「N 个文件 · M 项」对不上）
             LoadState.Loaded(_sessions.value.sumOf { it.fileCount })
         }
-        backgroundContext?.let { BackgroundProcessingService.stop(it) }
     }
 
     // ============================ 批量导出 ============================
@@ -1776,17 +1761,7 @@ class MainViewModel : ViewModel() {
 
     companion object {
         /** 单文件加载上限：Android 应用堆通常仅 256~512MB，整读更大文件必然 OOM */
-        val MAX_INPUT_BYTES: Long
-            get() {
-                // largeHeap is still constrained by the device's real ART heap.
-                // On high-RAM phones allow up to 1.5 GiB per input, while keeping
-                // the existing 768 MiB floor for devices with smaller large heaps.
-                val heap = Runtime.getRuntime().maxMemory()
-                return (heap * 0.80f).toLong().coerceIn(
-                    768L * 1024 * 1024,
-                    1536L * 1024 * 1024
-                )
-            }
+        const val MAX_INPUT_BYTES: Long = 768L * 1024 * 1024
 
         /**
          * 文件夹单次批量加载的文件数绝对上限。
@@ -1805,14 +1780,14 @@ class MainViewModel : ViewModel() {
          * （这只是文件字节维度的辅助预算；真正的防线是
          * [HEAP_STOP_LOADING] / [HEAP_STOP_PARSING] 的真实堆检查）
          */
-        const val FOLDER_MEM_RATIO: Float = 0.65f
+        const val FOLDER_MEM_RATIO: Float = 0.68f
 
         /**
          * 批量加载「读取阶段」的堆安全线。
          * 文件字节只是内存小头——后续对象构造会再膨胀数倍，因此读取阶段
          * 必须在堆用量较低时就停下，给 readAssets 留足膨胀空间。
          */
-        const val HEAP_STOP_LOADING: Float = 0.68f
+        const val HEAP_STOP_LOADING: Float = 0.66f
 
         /**
          * 「对象构造阶段」的堆安全线。对象构造是内存大头，此阶段本身
@@ -1820,7 +1795,7 @@ class MainViewModel : ViewModel() {
          * 余量（约 22%，512MB 堆即 ~110MB），杜绝厂商系统线程
          * （如 ColorOS oplus_force_gc_t）在堆满时分配失败导致的闪退。
          */
-        const val HEAP_STOP_PARSING: Float = 0.86f
+        const val HEAP_STOP_PARSING: Float = 0.84f
 
         /**
          * 「为新批次腾内存」的驱逐线（v1.8.0 批次架构）。
@@ -1828,14 +1803,14 @@ class MainViewModel : ViewModel() {
          * 低于 20% 时新批次可用的堆接近全量（读取阶段到 60% 停、
          * 构造阶段到 78% 停），保证每批装入量与前一批相当、链式推进可终止。
          */
-        const val HEAP_EVICT_LINE: Float = 0.15f
+        const val HEAP_EVICT_LINE: Float = 0.18f
 
         /**
          * 堆占比的「已沉降」判定线：[heapUsedRatioSettled] 等待 GC 生效时，
          * 占比高于此线才继续 GC + 等待 + 复测（低频决策点专用，
          * 不进入每 8 个文件的热路径）。
          */
-        const val HEAP_CONTINUE_LOADING: Float = 0.78f
+        const val HEAP_CONTINUE_LOADING: Float = 0.70f
 
         /**
          * 按需装载回填对象的缓存上限（v1.10.0）。

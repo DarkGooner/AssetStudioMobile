@@ -38,17 +38,17 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /*
- * Batch texture replacement对话框（游戏美化包工作流）：
+ * 批量替换贴图对话框（游戏美化包工作流）：
  *
- * 1. 扫描所选File夹内的Image（png/jpg/jpeg/webp/bmp，不递归）；
- * 2. File名与Texture名Automatically 匹配（BatchTextureMatcher：精确 → 包含 → 编号变体）；
- * 3. 展示匹配计划（可取消勾选单 entries），确认后逐texturesReplace并按容器重打包；
- * 4. 单容器输出原File，多容器输出 ZIP（详情见 AssetReplacer.replaceTexturesBatch）。
+ * 1. 扫描所选文件夹内的图片（png/jpg/jpeg/webp/bmp，不递归）；
+ * 2. 文件名与贴图名自动匹配（BatchTextureMatcher：精确 → 包含 → 编号变体）；
+ * 3. 展示匹配计划（可取消勾选单条），确认后逐张替换并按容器重打包；
+ * 4. 单容器输出原文件，多容器输出 ZIP（详情见 AssetReplacer.replaceTexturesBatch）。
  */
 
 private val IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "bmp")
 
-/** 一 entries"Texture → ImageFile"配对（带可取消勾选状态） */
+/** 一条"贴图 → 图片文件"配对（带可取消勾选状态） */
 private class PairRow(
     val item: AssetItem,
     val imageFile: File,
@@ -71,7 +71,7 @@ fun BatchReplaceDialog(
     var keepFormat by remember { mutableStateOf(true) }
     var running by remember { mutableStateOf(false) }
 
-    // ---------- 1+2. 扫描File夹并匹配（IO 线程） ----------
+    // ---------- 1+2. 扫描文件夹并匹配（IO 线程） ----------
     LaunchedEffect(folder) {
         val result = withContext(Dispatchers.IO) {
             try {
@@ -83,7 +83,7 @@ fun BatchReplaceDialog(
                     textureItems.map { it.name },
                     images.map { it.name }
                 )
-                // 按Texture名 → AssetItem 的映射回填（同名Texture按顺序消费）
+                // 按贴图名 → AssetItem 的映射回填（同名贴图按顺序消费）
                 val byName = HashMap<String, ArrayDeque<AssetItem>>()
                 for (t in textureItems) {
                     byName.getOrPut(t.name) { ArrayDeque() }.add(t)
@@ -99,7 +99,7 @@ fun BatchReplaceDialog(
             }
         }
         if (result == null) {
-            scanError = "Unable to read folder:${folder.absolutePath}"
+            scanError = "无法读取文件夹：${folder.absolutePath}"
             pairs = emptyList()
         } else {
             pairs = result.first
@@ -111,11 +111,11 @@ fun BatchReplaceDialog(
     val currentPairs = pairs
     AlertDialog(
         onDismissRequest = { if (!running) onDismiss() },
-        title = { Text("Batch texture replacement") },
+        title = { Text("批量替换贴图") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Folder:${folder.name}\nSelected textures ${textureItems.size} textures",
+                    "文件夹：${folder.name}\n已选贴图 ${textureItems.size} 张",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -127,18 +127,18 @@ fun BatchReplaceDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         CircularProgressIndicator(modifier = Modifier.padding(2.dp))
-                        Text("Scanning and matching…")
+                        Text("正在扫描并匹配…")
                     }
                     currentPairs.isEmpty() -> Text(
-                        "No textures matched.\n\nMake sure image filenames match texture names\n（Size写/空格/下划线差异可以Automatically 处理）。",
+                        "没有匹配到任何贴图。\n\n请确认图片文件名与贴图名一致\n（大小写/空格/下划线差异可以自动处理）。",
                         color = MaterialTheme.colorScheme.error
                     )
                     else -> {
                         // ---------- 匹配结果 ----------
                         Text(
-                            "Matched ${currentPairs.size} textures" +
-                                (if (unmatchedTextures.isNotEmpty()) "，未Matched ${unmatchedTextures.size} textures" else "") +
-                                (if (unmatchedFiles.isNotEmpty()) "; extra images ${unmatchedFiles.size} " else ""),
+                            "匹配 ${currentPairs.size} 张" +
+                                (if (unmatchedTextures.isNotEmpty()) "，未匹配 ${unmatchedTextures.size} 张" else "") +
+                                (if (unmatchedFiles.isNotEmpty()) "，多余图片 ${unmatchedFiles.size} 个" else ""),
                             style = MaterialTheme.typography.labelLarge
                         )
                         Surface(
@@ -164,7 +164,7 @@ fun BatchReplaceDialog(
                                         )
                                         Column(Modifier.padding(vertical = 4.dp)) {
                                             Text(
-                                                row.item.name.ifEmpty { "(Unnamed)" },
+                                                row.item.name.ifEmpty { "(未命名)" },
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 maxLines = 1,
                                                 overflow = TextOverflow.Ellipsis
@@ -185,9 +185,9 @@ fun BatchReplaceDialog(
 
                         if (unmatchedTextures.isNotEmpty()) {
                             Text(
-                                "Unmatched textures (unchanged):\n" +
+                                "未匹配贴图（保持原样）：\n" +
                                     unmatchedTextures.take(5).joinToString("、") +
-                                    if (unmatchedTextures.size > 5) " 等 ${unmatchedTextures.size} textures" else "",
+                                    if (unmatchedTextures.size > 5) " 等 ${unmatchedTextures.size} 张" else "",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -196,13 +196,13 @@ fun BatchReplaceDialog(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = keepFormat, onCheckedChange = { keepFormat = it })
                             Text(
-                                "Keep original format where possible（ASTC/DXT 已支持，其余回退 RGBA32）",
+                                "尽量保持原格式（ASTC/DXT 已支持，其余回退 RGBA32）",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
 
                         Text(
-                            "After replacement: each file is repacked only once; multiple files are automatically packed into a ZIP.",
+                            "替换后：同一文件只重打包一次；多个文件自动打包为 ZIP。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -215,7 +215,7 @@ fun BatchReplaceDialog(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         CircularProgressIndicator(modifier = Modifier.padding(2.dp))
-                        Text("Replacing and repacking… (large files may take tens of seconds)")
+                        Text("正在替换并重打包…（大文件可能需要几十秒）")
                     }
                 }
             }
@@ -236,7 +236,7 @@ fun BatchReplaceDialog(
                         }
                     }
                 ) {
-                    Text("Start replacement (${currentPairs.count { it.checked }})")
+                    Text("开始替换 (${currentPairs.count { it.checked }})")
                 }
             }
         },

@@ -21,7 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.assetstudio.mobile.MainViewModel
 
-/** 全屏Load遮罩 */
+/** 全屏加载遮罩 */
 @Composable
 fun LoadingOverlay(message: String) {
     Box(
@@ -70,14 +70,14 @@ fun InfoRow(label: String, value: String) {
     }
 }
 
-/** Type徽标圆点（按AssetType着色） */
+/** 类型徽标圆点（按资产类型着色） */
 @Composable
 fun TypeDot(typeValue: Int, modifier: Modifier = Modifier) {
     val color = when {
-        typeValue == 28 || typeValue == 187 -> Color(0xFF7E57C2)      // Texture
+        typeValue == 28 || typeValue == 187 -> Color(0xFF7E57C2)      // 贴图
         typeValue == 213 || typeValue == 68 -> Color(0xFFEC407A)      // Sprite
-        typeValue == 49 -> Color(0xFF26A69A)                          // Text
-        typeValue == 83 -> Color(0xFFFF7043)                          // Audio
+        typeValue == 49 -> Color(0xFF26A69A)                          // 文本
+        typeValue == 83 -> Color(0xFFFF7043)                          // 音频
         typeValue == 114 || typeValue == 115 -> Color(0xFF42A5F5)     // 脚本
         typeValue == 1 -> Color(0xFF66BB6A)                           // GameObject
         typeValue == 43 -> Color(0xFF8D6E63)                          // Mesh

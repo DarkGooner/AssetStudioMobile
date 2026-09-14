@@ -104,7 +104,7 @@ fun AssetDetailScreen(
     viewModel: MainViewModel,
     assetId: String,
     onBack: () -> Unit,
-    /** 点击关联Asset跳转其详情页（如 SkinnedMeshRenderer 引用的 Mesh） */
+    /** 点击关联资产跳转其详情页（如 SkinnedMeshRenderer 引用的 Mesh） */
     onOpenAsset: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -112,33 +112,33 @@ fun AssetDetailScreen(
     val assets by viewModel.assets.collectAsState()
     val item = remember(assetId, assets) { assets.firstOrNull { it.id == assetId } }
     val pendingSave by viewModel.pendingSave.collectAsState()
-    // v1.10.0：按需装载状态——懒 entries目（Source file未驻留内存）点开时Automatically 从磁盘载入
+    // v1.10.0：按需装载状态——懒条目（所在文件未驻留内存）点开时自动从磁盘载入
     val demandState by viewModel.demandState.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     var busy by remember { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf<String?>(null) }
 
-    // v1.10.0 核心补全：懒 entries目进入详情页即Automatically 装载（只读它所在的那一File）。
-    // 装载Success后 MainViewModel 会回填统一列表，item.obj 变为非空并Automatically 重组出预览
+    // v1.10.0 核心补全：懒条目进入详情页即自动装载（只读它所在的那一个文件）。
+    // 装载成功后 MainViewModel 会回填统一列表，item.obj 变为非空并自动重组出预览
     LaunchedEffect(assetId, item?.isLazy) {
         if (item?.isLazy == true) {
             viewModel.requestAssetLive(assetId)
         }
     }
 
-    // Replace确认对话框状态
+    // 替换确认对话框状态
     var pendingBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var keepFormat by remember { mutableStateOf(true) }
-    // 待确认的ModelReplace内容：Text + IO 线程统计好的摘要（主线程不做任何全文扫描）
+    // 待确认的模型替换内容：文本 + IO 线程统计好的摘要（主线程不做任何全文扫描）
     var pendingObj by remember { mutableStateOf<PendingObj?>(null) }
 
     val texture = item?.obj as? Texture2D
     val meshObj = item?.obj as? Mesh
 
-    // ---------- 渲染器类Component（SkinnedMeshRenderer / MeshFilter）引用的Mesh ----------
-    // 这些Component本身不含几何数据，几何在 m_Mesh PPtr 指向的 Mesh 对象里：
+    // ---------- 渲染器类组件（SkinnedMeshRenderer / MeshFilter）引用的网格 ----------
+    // 这些组件本身不含几何数据，几何在 m_Mesh PPtr 指向的 Mesh 对象里：
     // - 预览：解引用后复用 Mesh 预览器
-    // - Replace：Replace目标就Yes这 Mesh（pathID 重写走 Mesh 对象Source file）
+    // - 替换：替换目标就是这个 Mesh（pathID 重写走 Mesh 对象所在文件）
     val referencedMesh: Mesh? = remember(item) {
         when (val o = item?.obj) {
             is SkinnedMeshRenderer -> if (!o.m_Mesh.isNull) o.m_Mesh.tryGet() else null
@@ -147,7 +147,7 @@ fun AssetDetailScreen(
         }
     }
 
-    // ModelReplace目标：直接Yes Mesh，或Yes渲染器Component引用的 Mesh
+    // 模型替换目标：直接是 Mesh，或是渲染器组件引用的 Mesh
     val replaceTargetMesh = meshObj ?: referencedMesh
 
     LaunchedEffect(message) {
@@ -157,21 +157,21 @@ fun AssetDetailScreen(
         }
     }
 
-    // ---------- 应用内File选择（替代 SAF OpenDocument） ----------
-    /** 当前选择目标：ReplaceTexture（选Image）/ Replace model（选 OBJ） */
+    // ---------- 应用内文件选择（替代 SAF OpenDocument） ----------
+    /** 当前选择目标：替换贴图（选图片）/ 替换模型（选 OBJ） */
     var pickTarget by remember { mutableStateOf<PickTarget?>(null) }
 
-    // ---------- 应用内Save（替代 SAF：SAF 会按 MIME 强制改后缀 .txt/.bin） ----------
+    // ---------- 应用内保存（替代 SAF：SAF 会按 MIME 强制改后缀 .txt/.bin） ----------
     val (storageGranted, requestStorage) = rememberStoragePermission()
 
-    /** 当前等待Save的请求：导出当前Asset / 另存Replace结果 */
+    /** 当前等待保存的请求：导出当前资产 / 另存替换结果 */
     var saveRequest by remember { mutableStateOf<SaveRequest?>(null) }
     var showPermDialog by remember { mutableStateOf(false) }
 
     if (item == null) {
-        Scaffold(topBar = { DetailTopBar("Asset", onBack) }) { padding ->
+        Scaffold(topBar = { DetailTopBar("资产", onBack) }) { padding ->
             Box(Modifier.padding(padding)) {
-                Text("Asset不存在（可能已重新LoadFile）", Modifier.padding(24.dp))
+                Text("资产不存在（可能已重新加载文件）", Modifier.padding(24.dp))
             }
         }
         return
@@ -193,8 +193,8 @@ fun AssetDetailScreen(
                 Spacer(Modifier.height(4.dp))
 
                 // ---------- 预览区 ----------
-                // v1.10.0：懒 entries目（obj=null）先显示装载占位卡——按需装载由上方
-                // LaunchedEffect Automatically 触发，Success回填后此处Automatically 重组为真实预览
+                // v1.10.0：懒条目（obj=null）先显示装载占位卡——按需装载由上方
+                // LaunchedEffect 自动触发，成功回填后此处自动重组为真实预览
                 if (item.obj == null) {
                     when (val ds = demandState) {
                         is DemandState.Failed -> Card(modifier = Modifier.fillMaxWidth()) {
@@ -202,14 +202,14 @@ fun AssetDetailScreen(
                                 Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Text("Failed to load from disk", style = MaterialTheme.typography.titleSmall)
+                                Text("从磁盘载入失败", style = MaterialTheme.typography.titleSmall)
                                 Text(
-                                    ds.reason.ifEmpty { "该Asset所在的File无法重新读取（可能已被移动或删除）" },
+                                    ds.reason.ifEmpty { "该资产所在的文件无法重新读取（可能已被移动或删除）" },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 OutlinedButton(onClick = { viewModel.requestAssetLive(assetId) }) {
-                                    Text("Retry")
+                                    Text("重试")
                                 }
                             }
                         }
@@ -221,9 +221,9 @@ fun AssetDetailScreen(
                             ) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 Column {
-                                    Text("Loading from disk「${item.name}」…", style = MaterialTheme.typography.titleSmall)
+                                    Text("正在从磁盘载入「${item.name}」…", style = MaterialTheme.typography.titleSmall)
                                     Text(
-                                        "Only the source file for this item is loaded, usually within 1 second",
+                                        "只载入该项所在的这一个文件，通常 1 秒内完成",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -237,28 +237,28 @@ fun AssetDetailScreen(
                     is Mesh -> MeshPreview(obj)
                     is TextAsset -> TextPreview(obj)
                     is MonoBehaviour -> MonoPreview(obj)
-                    is Material -> RenderDumpPreview("Material information") { RenderDumper.dumpMaterial(obj) }
-                    is Shader -> RenderDumpPreview("Shader information") { RenderDumper.dumpShader(obj) }
-                    // 渲染器Component：预览其引用的Mesh（几何数据在 Mesh 对象里，不在Component内）
+                    is Material -> RenderDumpPreview("材质信息") { RenderDumper.dumpMaterial(obj) }
+                    is Shader -> RenderDumpPreview("着色器信息") { RenderDumper.dumpShader(obj) }
+                    // 渲染器组件：预览其引用的网格（几何数据在 Mesh 对象里，不在组件内）
                     is SkinnedMeshRenderer, is MeshFilter -> {
                         if (referencedMesh != null) {
                             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 MeshPreview(referencedMesh)
                                 Text(
-                                    "Mesh来自 ${item.type.name} 引用的 Mesh" +
-                                        "（${referencedMesh.m_VertexCount} vertices / ${referencedMesh.m_Indices.size / 3} triangles）",
+                                    "网格来自 ${item.type.name} 引用的 Mesh" +
+                                        "（${referencedMesh.m_VertexCount} 顶点 / ${referencedMesh.m_Indices.size / 3} 三角形）",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         } else {
-                            // 引用为空或指向未Load的External file（如剥离的依赖包）
+                            // 引用为空或指向未加载的外部文件（如剥离的依赖包）
                             Card(modifier = Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("Asset preview", style = MaterialTheme.typography.titleSmall)
+                                    Text("资产预览", style = MaterialTheme.typography.titleSmall)
                                     Text(
-                                        "${item.type.name} does not reference a loadable mesh" +
-                                            "（reference is empty or points to an unloaded external dependency），\n可导出Raw data或 TypeTree dump。",
+                                        "${item.type.name} 未引用可加载的网格" +
+                                            "（引用为空，或指向未加载的外部依赖文件），\n可导出原始数据或 TypeTree 转储。",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -270,30 +270,30 @@ fun AssetDetailScreen(
                 }
 
                 // ---------- 信息卡 ----------
-                // SelectionContainer：信息卡内所有Text支持长按自由选择复制
+                // SelectionContainer：信息卡内所有文本支持长按自由选择复制
                 //（长按出现系统选择手柄，可跨行拖动选择任意范围文字，点"复制"即可）
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SelectionContainer {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text("Asset信息", style = MaterialTheme.typography.titleSmall)
+                            Text("资产信息", style = MaterialTheme.typography.titleSmall)
                             Spacer(Modifier.height(6.dp))
-                            InfoRow("Type", item.type.name)
+                            InfoRow("类型", item.type.name)
                             InfoRow("PathID", item.pathID.toString())
-                            InfoRow("Size", formatBytes(item.byteSize))
-                            InfoRow("Source file", item.fileName)
+                            InfoRow("大小", formatBytes(item.byteSize))
+                            InfoRow("所在文件", item.fileName)
                             if (item.containerPath.isNotEmpty()) {
-                                InfoRow("Container path", item.containerPath.substringAfterLast('/'))
+                                InfoRow("容器路径", item.containerPath.substringAfterLast('/'))
                             }
                             if (item.obj is Texture2D) {
                                 val t = item.obj as Texture2D
-                                InfoRow("Dimensions", "${t.m_Width} x ${t.m_Height}")
-                                InfoRow("Format", t.m_TextureFormat.name)
-                                InfoRow("Mip levels", t.m_MipCount.toString())
+                                InfoRow("尺寸", "${t.m_Width} x ${t.m_Height}")
+                                InfoRow("格式", t.m_TextureFormat.name)
+                                InfoRow("Mip 级数", t.m_MipCount.toString())
                                 val streamed = t.m_StreamData
                                 if (streamed != null && streamed.path.isNotEmpty()) {
-                                    InfoRow("Data source", "Streamed (${streamed.path.substringAfterLast('/')})")
+                                    InfoRow("数据源", "流式 (${streamed.path.substringAfterLast('/')})")
                                 } else {
-                                    InfoRow("Data source", "Inline")
+                                    InfoRow("数据源", "内联")
                                 }
                             }
                             if (item.obj is Sprite) {
@@ -301,64 +301,64 @@ fun AssetDetailScreen(
                                 val info = try { s.getTextureInfo() } catch (e: Exception) { null }
                                 if (info != null) {
                                     InfoRow(
-                                        "Texture rect",
+                                        "纹理区域",
                                         "%.0f x %.0f".format(info.textureRect.width, info.textureRect.height)
                                     )
                                 }
                             }
                             if (item.obj is Mesh) {
                                 val m = item.obj as Mesh
-                                InfoRow("submeshes", m.m_SubMeshes.size.toString())
-                                InfoRow("vertices数", m.m_VertexCount.toString())
-                                InfoRow("triangles", (m.m_Indices.size / 3).toString())
-                                InfoRow("压缩Mesh", if (m.m_CompressedMesh != null &&
+                                InfoRow("子网格", m.m_SubMeshes.size.toString())
+                                InfoRow("顶点数", m.m_VertexCount.toString())
+                                InfoRow("三角形", (m.m_Indices.size / 3).toString())
+                                InfoRow("压缩网格", if (m.m_CompressedMesh != null &&
                                     (m.m_CompressedMesh!!.m_Vertices.m_NumItems > 0 ||
                                         m.m_CompressedMesh!!.m_Triangles.m_NumItems > 0)
-                                ) "Yes（已解压）" else "No")
+                                ) "是（已解压）" else "否")
                             }
                             if (item.obj is SkinnedMeshRenderer) {
                                 val smr = item.obj as SkinnedMeshRenderer
-                                InfoRow("Bones", smr.m_Bones.size.toString())
-                                InfoRow("Material slots", smr.m_Materials.size.toString())
+                                InfoRow("骨骼数量", smr.m_Bones.size.toString())
+                                InfoRow("材质槽位", smr.m_Materials.size.toString())
                                 smr.m_BlendShapeWeights?.let {
-                                    InfoRow("Blend shape weights", it.size.toString())
+                                    InfoRow("混合形状权重", it.size.toString())
                                 }
                                 InfoRow(
-                                    "Skinned mesh",
-                                    if (smr.m_Mesh.isNull) "No reference"
+                                    "蒙皮网格",
+                                    if (smr.m_Mesh.isNull) "无引用"
                                     else referencedMesh?.let { m ->
-                                        "${m.m_VertexCount} vertices / ${m.m_SubMeshes.size} submeshes"
-                                    } ?: "Reference not loaded (external file)"
+                                        "${m.m_VertexCount} 顶点 / ${m.m_SubMeshes.size} 子网格"
+                                    } ?: "引用未加载（外部文件）"
                                 )
                             }
                             if (item.obj is MeshFilter) {
                                 val mf = item.obj as MeshFilter
                                 InfoRow(
-                                    "Mesh reference",
-                                    if (mf.m_Mesh.isNull) "No reference"
+                                    "网格引用",
+                                    if (mf.m_Mesh.isNull) "无引用"
                                     else referencedMesh?.let { m ->
-                                        "${m.m_VertexCount} vertices / ${m.m_SubMeshes.size} submeshes"
-                                    } ?: "Reference not loaded (external file)"
+                                        "${m.m_VertexCount} 顶点 / ${m.m_SubMeshes.size} 子网格"
+                                    } ?: "引用未加载（外部文件）"
                                 )
                             }
                             if (item.obj is AudioClip) {
                                 val samples = try { (item.obj as AudioClip).listSamples().size } catch (e: Exception) { 0 }
-                                InfoRow("Audio samples", "$samples")
+                                InfoRow("音频样本", "$samples")
                             }
                         }
                     }
                 }
 
-                // ---------- 关联Asset卡（渲染器Component引用的 Mesh，点击跳转详情） ----------
+                // ---------- 关联资产卡（渲染器组件引用的 Mesh，点击跳转详情） ----------
                 referencedMesh?.let { mesh ->
-                    // 关联 Mesh YesNo在已LoadAsset列表中（跨File引用未Load时跳转无效，只展示信息）
+                    // 关联 Mesh 是否在已加载资产列表中（跨文件引用未加载时跳转无效，只展示信息）
                     val meshAssetId = remember(mesh, assets) {
                         val id = "${mesh.assetsFile.fileName}#${mesh.m_PathID}"
                         if (assets.any { it.id == id }) id else null
                     }
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("关联Asset", style = MaterialTheme.typography.titleSmall)
+                            Text("关联资产", style = MaterialTheme.typography.titleSmall)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -369,18 +369,18 @@ fun AssetDetailScreen(
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Text(
-                                        "${mesh.m_VertexCount} vertices · ${mesh.m_SubMeshes.size} submeshes · ${mesh.m_Indices.size / 3} triangles",
+                                        "${mesh.m_VertexCount} 顶点 · ${mesh.m_SubMeshes.size} 子网格 · ${mesh.m_Indices.size / 3} 三角形",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 if (meshAssetId != null) {
                                     TextButton(onClick = { onOpenAsset(meshAssetId) }) {
-                                        Text("View")
+                                        Text("查看")
                                     }
                                 } else {
                                     Text(
-                                        "External file",
+                                        "外部文件",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -401,19 +401,19 @@ fun AssetDetailScreen(
                                 showPermDialog = true
                                 return@OutlinedButton
                             }
-                            // 按钮在懒 entries目装载Complete前已禁用（enabled = item.obj != null），此处必非空
+                            // 按钮在懒条目装载完成前已禁用（enabled = item.obj != null），此处必非空
                             val ext = AssetExporter.suggestedExtension(item.obj!!)
                             val base = item.name.ifEmpty { item.type.name }
                                 .replace(Regex("[\\\\/:*?\"<>|]"), "_")
                             saveRequest = SaveRequest.Export("$base.$ext")
                         },
-                        // v1.10.0：懒 entries目装载Complete前禁用（装载Automatically 进行，通常 1 秒内解锁）
+                        // v1.10.0：懒条目装载完成前禁用（装载自动进行，通常 1 秒内解锁）
                         enabled = item.obj != null,
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(Icons.Filled.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.size(6.dp))
-                        Text(if (item.obj == null) "Loading…" else "导出")
+                        Text(if (item.obj == null) "载入中…" else "导出")
                     }
                     if (texture != null) {
                         Button(
@@ -428,10 +428,10 @@ fun AssetDetailScreen(
                         ) {
                             Icon(Icons.Filled.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(6.dp))
-                            Text("ReplaceTexture")
+                            Text("替换贴图")
                         }
                     }
-                    // Replace model：Mesh Asset本身，或渲染器Component（SkinnedMeshRenderer/MeshFilter）引用的 Mesh
+                    // 替换模型：Mesh 资产本身，或渲染器组件（SkinnedMeshRenderer/MeshFilter）引用的 Mesh
                     if (replaceTargetMesh != null) {
                         Button(
                             onClick = {
@@ -445,12 +445,12 @@ fun AssetDetailScreen(
                         ) {
                             Icon(Icons.Filled.SwapHoriz, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.size(6.dp))
-                            Text(if (meshObj != null) "Replace model" else "Replace mesh")
+                            Text(if (meshObj != null) "替换模型" else "替换网格")
                         }
                     }
                 }
 
-                // ---------- 待Save提示 ----------
+                // ---------- 待保存提示 ----------
                 pendingSave?.let { result ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -460,17 +460,17 @@ fun AssetDetailScreen(
                     ) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                "Replacement complete; waiting for save",
+                                "替换完成，等待另存",
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
-                                "Repacked ${formatBytes(result.bytes.size.toLong())}",
+                                "已重打包 ${formatBytes(result.bytes.size.toLong())}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
                             Text(
-                                "提示：另存时建议保持原File名与后缀（如 .ab/.bundle），可直接Replace游戏内同名File。",
+                                "提示：另存时建议保持原文件名与后缀（如 .ab/.bundle），可直接替换游戏内同名文件。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
                             )
@@ -484,7 +484,7 @@ fun AssetDetailScreen(
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("Save as new file")
+                                Text("另存为新文件")
                             }
                         }
                     }
@@ -500,26 +500,26 @@ fun AssetDetailScreen(
         }
     }
 
-    // ---------- Replace model确认对话框 ----------
+    // ---------- 替换模型确认对话框 ----------
     pendingObj?.let { pending ->
         if (replaceTargetMesh != null) {
             AlertDialog(
                 onDismissRequest = { pendingObj = null },
-                title = { Text("确认Replace model") },
+                title = { Text("确认替换模型") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Original model: ${replaceTargetMesh.m_VertexCount} vertices / ${replaceTargetMesh.m_SubMeshes.size} submeshes / ${replaceTargetMesh.m_Indices.size / 3} triangles")
-                        Text("New model: ${pending.summary}")
+                        Text("原模型: ${replaceTargetMesh.m_VertexCount} 顶点 / ${replaceTargetMesh.m_SubMeshes.size} 子网格 / ${replaceTargetMesh.m_Indices.size / 3} 三角形")
+                        Text("新模型: ${pending.summary}")
                         if (meshObj == null) {
                             Text(
-                                "Will replace ${item.type.name} 引用的 Mesh（${replaceTargetMesh.m_Name ?: "#" + replaceTargetMesh.m_PathID}），bone bindings and material slots remain unchanged.",
+                                "将替换 ${item.type.name} 引用的 Mesh（${replaceTargetMesh.m_Name ?: "#" + replaceTargetMesh.m_PathID}），骨骼绑定与材质槽保持不变。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
                         Text(
-                            "Replace将重写vertices / 法线 / UV / 索引 / 包围盒（Name保留）。" +
-                                "若缺少法线或 UV，将Automatically 生成占位数据；三角带Model请先转换为triangles列表。",
+                            "替换将重写顶点 / 法线 / UV / 索引 / 包围盒（名称保留）。" +
+                                "若缺少法线或 UV，将自动生成占位数据；三角带模型请先转换为三角形列表。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -529,36 +529,36 @@ fun AssetDetailScreen(
                     TextButton(onClick = {
                         val text = pending.text
                         pendingObj = null
-                        busy = "Replace model并重打包…"
+                        busy = "正在替换模型并重打包…"
                         viewModel.replaceMesh(replaceTargetMesh, text) { ok, msg ->
                             busy = null
                             message = msg
                         }
                     }) {
-                        Text("Replace")
+                        Text("替换")
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { pendingObj = null }) {
-                        Text("Cancel")
+                        Text("取消")
                     }
                 }
             )
         }
     }
 
-    // ---------- ReplaceTexture确认对话框 ----------
+    // ---------- 替换贴图确认对话框 ----------
     if (pendingBitmap != null && texture != null) {
         AlertDialog(
             onDismissRequest = { pendingBitmap = null },
-            title = { Text("Confirm texture replacement") },
+            title = { Text("确认替换贴图") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Original texture: ${texture.m_Width} x ${texture.m_Height} (${texture.m_TextureFormat.name})")
-                    Text("New texture: ${pendingBitmap!!.width} x ${pendingBitmap!!.height}")
+                    Text("原贴图: ${texture.m_Width} x ${texture.m_Height} (${texture.m_TextureFormat.name})")
+                    Text("新贴图: ${pendingBitmap!!.width} x ${pendingBitmap!!.height}")
                     if (pendingBitmap!!.width != texture.m_Width || pendingBitmap!!.height != texture.m_Height) {
                         Text(
-                            "注意：Dimensions与原图不同，Dimensions字段将同步更新；引用该Texture的Sprite裁剪区域可能偏移。",
+                            "注意：尺寸与原图不同，尺寸字段将同步更新；引用该贴图的精灵裁剪区域可能偏移。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -566,7 +566,7 @@ fun AssetDetailScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = keepFormat, onCheckedChange = { keepFormat = it })
                         Text(
-                            "Keep original format where possible（Unsupported时回退 RGBA32）",
+                            "尽量保持原格式（不支持时回退 RGBA32）",
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -576,18 +576,18 @@ fun AssetDetailScreen(
                 TextButton(onClick = {
                     val bmp = pendingBitmap!!
                     pendingBitmap = null
-                    busy = "Replacing and repacking…"
+                    busy = "正在替换并重打包…"
                     viewModel.replaceTexture(texture, bmp, keepFormat) { ok, msg ->
                         busy = null
                         message = msg
                     }
                 }) {
-                    Text("Replace")
+                    Text("替换")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingBitmap = null }) {
-                    Text("Cancel")
+                    Text("取消")
                 }
             }
         )
@@ -597,12 +597,12 @@ fun AssetDetailScreen(
     if (showPermDialog) {
         AlertDialog(
             onDismissRequest = { showPermDialog = false },
-            title = { Text("Storage permission required") },
+            title = { Text("需要存储权限") },
             text = {
                 Text(
-                    "In-app save files需要「所有File访问」权限。\n\n" +
-                        "点击「Grant access」跳转系统设置页，找到本应用并开启" +
-                        "\"Allow management of all files\"后Back即可。",
+                    "应用内保存文件需要「所有文件访问」权限。\n\n" +
+                        "点击「去授权」跳转系统设置页，找到本应用并开启" +
+                        "\"允许管理所有文件\"后返回即可。",
                     style = MaterialTheme.typography.bodySmall
                 )
             },
@@ -610,15 +610,15 @@ fun AssetDetailScreen(
                 TextButton(onClick = {
                     showPermDialog = false
                     requestStorage()
-                }) { Text("Grant access") }
+                }) { Text("去授权") }
             },
             dismissButton = {
-                TextButton(onClick = { showPermDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showPermDialog = false }) { Text("取消") }
             }
         )
     }
 
-    // ---------- In-app save files管理器 ----------
+    // ---------- 应用内保存文件管理器 ----------
     saveRequest?.let { request ->
         FileSaveDialog(
             initialName = request.suggestedName,
@@ -628,14 +628,14 @@ fun AssetDetailScreen(
                 when (request) {
                     is SaveRequest.Export -> {
                         val target = item ?: return@FileSaveDialog
-                        busy = "Exporting…"
+                        busy = "正在导出…"
                         viewModel.exportAssetToFile(target, file) { ok, msg ->
                             busy = null
                             message = msg
                         }
                     }
                     is SaveRequest.Pending -> {
-                        busy = "Saving…"
+                        busy = "正在保存…"
                         viewModel.savePendingToFile(file) { ok, msg ->
                             busy = null
                             message = msg
@@ -645,13 +645,13 @@ fun AssetDetailScreen(
             }
         )
     }
-    // ---------- 应用内File选择器（ReplaceTexture选Image / Replace model选 OBJ） ----------
+    // ---------- 应用内文件选择器（替换贴图选图片 / 替换模型选 OBJ） ----------
     pickTarget?.let { target ->
         FilePickerDialog(
             extensions = if (target == PickTarget.Texture) {
                 setOf("png", "jpg", "jpeg", "webp", "bmp")
             } else {
-                // 兼容此前被 SAF 存成 .txt 的 OBJ 导出File
+                // 兼容此前被 SAF 存成 .txt 的 OBJ 导出文件
                 setOf("obj", "txt")
             },
             onDismiss = { pickTarget = null },
@@ -660,7 +660,7 @@ fun AssetDetailScreen(
                 val file = files.firstOrNull() ?: return@FilePickerDialog
                 when (target) {
                     PickTarget.Texture -> {
-                        busy = "Reading image…"
+                        busy = "正在读取图片…"
                         scope.launch {
                             val bmp = withContext(Dispatchers.IO) {
                                 try {
@@ -673,21 +673,21 @@ fun AssetDetailScreen(
                             if (bmp != null) {
                                 pendingBitmap = bmp
                             } else {
-                                message = "Failed to read image; please choose another image"
+                                message = "图片读取失败，请换一张图片"
                             }
                         }
                     }
                     PickTarget.Model -> {
-                        busy = "Reading model file…"
+                        busy = "正在读取模型文件…"
                         scope.launch {
-                            // 读取 + vertices/面统计All在 IO 线程Complete后才回主线程弹确认框，
-                            // 主线程不做任何全文扫描（No则大File会 ANR）
+                            // 读取 + 顶点/面统计全部在 IO 线程完成后才回主线程弹确认框，
+                            // 主线程不做任何全文扫描（否则大文件会 ANR）
                             val result = withContext(Dispatchers.IO) {
                                 try {
                                     val bytes = file.readBytes()
                                     if (bytes.size > 96 * 1024 * 1024) {
                                         return@withContext null to
-                                            "File too large (${bytes.size / 1024 / 1024} MB），; make sure the selected file is an OBJ text file"
+                                            "文件过大（${bytes.size / 1024 / 1024} MB），请确认选择的是 OBJ 文本文件"
                                     }
                                     val text = bytes.toString(Charsets.UTF_8)
                                     var v = 0
@@ -696,11 +696,11 @@ fun AssetDetailScreen(
                                         if (line.startsWith("v ")) v++
                                         else if (line.startsWith("f ")) f++
                                     }
-                                    PendingObj(text, "$v vertices / $f 面") to null
+                                    PendingObj(text, "$v 顶点 / $f 面") to null
                                 } catch (e: OutOfMemoryError) {
-                                    null to "Not enough memory: file is too large to read"
+                                    null to "内存不足：文件太大，无法读入"
                                 } catch (e: Exception) {
-                                    null to "Failed to read OBJ file:${e.message}"
+                                    null to "OBJ 文件读取失败：${e.message}"
                                 }
                             }
                             busy = null
@@ -718,17 +718,17 @@ fun AssetDetailScreen(
     }
 }
 
-/** File选择目标 */
+/** 文件选择目标 */
 private enum class PickTarget { Texture, Model }
 
-/** Save请求：导出当前Asset / 另存Replace重打包结果 */
+/** 保存请求：导出当前资产 / 另存替换重打包结果 */
 private sealed interface SaveRequest {
     val suggestedName: String
     data class Export(override val suggestedName: String) : SaveRequest
     data class Pending(override val suggestedName: String) : SaveRequest
 }
 
-/** 待确认的ModelReplace内容：完整 OBJ Text + IO 线程统计好的摘要 */
+/** 待确认的模型替换内容：完整 OBJ 文本 + IO 线程统计好的摘要 */
 private data class PendingObj(
     val text: String,
     val summary: String
@@ -743,20 +743,20 @@ private fun DetailTopBar(title: String, onBack: () -> Unit) {
         },
         navigationIcon = {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
             }
         }
     )
 }
 
-// ============================ 预览Component ============================
+// ============================ 预览组件 ============================
 
 @Composable
 private fun TexturePreview(viewModel: MainViewModel, texture: Texture2D) {
     val bitmap by produceState<Bitmap?>(initialValue = null, texture) {
         value = viewModel.decodeTexture(texture)
     }
-    PreviewCard(bitmap, "Texture preview")
+    PreviewCard(bitmap, "贴图预览")
 }
 
 @Composable
@@ -764,7 +764,7 @@ private fun SpritePreview(viewModel: MainViewModel, sprite: Sprite) {
     val bitmap by produceState<Bitmap?>(initialValue = null, sprite) {
         value = viewModel.decodeSprite(sprite)
     }
-    PreviewCard(bitmap, "Sprite preview")
+    PreviewCard(bitmap, "精灵预览")
 }
 
 @Composable
@@ -782,12 +782,12 @@ private fun PreviewCard(bitmap: Bitmap?, title: String) {
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            "Unable to preview",
+                            "无法预览",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            "FormatUnsupported或流数据缺失",
+                            "格式不支持或流数据缺失",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -801,14 +801,14 @@ private fun PreviewCard(bitmap: Bitmap?, title: String) {
 }
 
 /**
- * 自适应Texture preview：小DimensionsTexture等比放大到可辨识Size（原始比例不变），
- * 并提供滑杆拖拉控制等比Scale。
+ * 自适应贴图预览：小尺寸贴图等比放大到可辨识大小（原始比例不变），
+ * 并提供滑杆拖拉控制等比缩放。
  *
  * 适配规则：
  * 1. 基准：完整放入（可用宽度 × 最大预览高度 340dp）——小图放大、大图缩小；
  *    可辨识下限（显示高度 ≥96dp、宽度 ≥48dp，受总高 640dp 上限约束）
- * 2. 滑杆在此基础上乘Scale系数（25% ~ 800%），切换Texture时Automatically Reset为 100%
- * 3. Scale后内容超出视口（480dp 高 / 卡片宽）时双向滑动View
+ * 2. 滑杆在此基础上乘缩放系数（25% ~ 800%），切换贴图时自动重置为 100%
+ * 3. 缩放后内容超出视口（480dp 高 / 卡片宽）时双向滑动查看
  * 4. 放大超过原始像素时用 FilterQuality.None（最近邻，像素块清晰）
  */
 @Composable
@@ -822,7 +822,7 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
         val w = bitmap.width
         val h = bitmap.height
         if (w > 0 && h > 0) {
-            // 用户Scale系数（相对自适应基准），切换Texture时Reset
+            // 用户缩放系数（相对自适应基准），切换贴图时重置
             var zoom by remember(bitmap) { mutableStateOf(1f) }
 
             val maxWpx = constraints.maxWidth.toFloat()
@@ -866,14 +866,14 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
                         )
                     )
                 }
-                // Scale滑杆：拖拉控制等比Scale（相对自适应基准的百分比）
+                // 缩放滑杆：拖拉控制等比缩放（相对自适应基准的百分比）
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Scale",
+                        "缩放",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -895,7 +895,7 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
                     buildString {
                         append("$w x $h")
                         if (scale > 1.01f) append("（预览放大 ${"%.1f".format(scale)}x）")
-                        if (scrollable) append("，超出部分可滑动View")
+                        if (scrollable) append("，超出部分可滑动查看")
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -909,7 +909,7 @@ private fun AdaptiveImagePreview(bitmap: Bitmap) {
 private fun TextPreview(textAsset: TextAsset) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Text content", style = MaterialTheme.typography.titleSmall)
+            Text("文本内容", style = MaterialTheme.typography.titleSmall)
             val content = remember(textAsset) {
                 try {
                     val raw = textAsset.m_Script
@@ -919,7 +919,7 @@ private fun TextPreview(textAsset: TextAsset) {
                         String(raw, Charsets.UTF_8)
                     }
                 } catch (e: Exception) {
-                    "(非 UTF-8 Text，共 ${textAsset.m_Script.size} 字节)"
+                    "(非 UTF-8 文本，共 ${textAsset.m_Script.size} 字节)"
                 }
             }
             Text(
@@ -939,7 +939,7 @@ private fun TextPreview(textAsset: TextAsset) {
 private fun MonoPreview(mono: MonoBehaviour) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("TypeTree dump", style = MaterialTheme.typography.titleSmall)
+            Text("TypeTree 转储", style = MaterialTheme.typography.titleSmall)
             val dump by produceState<String?>(initialValue = null, mono) {
                 value = withContext(Dispatchers.IO) {
                     try {
@@ -948,15 +948,15 @@ private fun MonoPreview(mono: MonoBehaviour) {
                             mono.reader.reset()
                             TypeTreeHelper.readTypeString(typeTree, mono.reader)
                         } else {
-                            "（This object has no TypeTree information）"
+                            "（该对象无 TypeTree 信息）"
                         }
                     } catch (e: Exception) {
-                        "Dump failed: ${e.message}"
+                        "转储失败: ${e.message}"
                     }
                 }
             }
             Text(
-                dump ?: "Dumping…",
+                dump ?: "正在转储…",
                 fontFamily = FontFamily.Monospace,
                 fontSize = 11.sp,
                 style = MaterialTheme.typography.bodySmall,
@@ -969,8 +969,8 @@ private fun MonoPreview(mono: MonoBehaviour) {
 }
 
 /**
- * 渲染Asset（Material / Shader）Text转储预览：
- * 转储在 IO 线程执行，结果可滚动View，支持长按选择复制。
+ * 渲染资产（Material / Shader）文本转储预览：
+ * 转储在 IO 线程执行，结果可滚动查看，支持长按选择复制。
  */
 @Composable
 private fun RenderDumpPreview(title: String, dump: () -> String) {
@@ -982,13 +982,13 @@ private fun RenderDumpPreview(title: String, dump: () -> String) {
                     try {
                         dump()
                     } catch (e: Exception) {
-                        "Dump failed: ${e.message}"
+                        "转储失败: ${e.message}"
                     }
                 }
             }
             SelectionContainer {
                 Text(
-                    text ?: "Parsing…",
+                    text ?: "正在解析…",
                     fontFamily = FontFamily.Monospace,
                     fontSize = 11.sp,
                     style = MaterialTheme.typography.bodySmall,
@@ -1005,9 +1005,9 @@ private fun RenderDumpPreview(title: String, dump: () -> String) {
 private fun GenericPreview(item: AssetItem) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Asset preview", style = MaterialTheme.typography.titleSmall)
+            Text("资产预览", style = MaterialTheme.typography.titleSmall)
             Text(
-                "${item.type.name} Type暂Unsupported可视化预览，\n可导出Raw data或 TypeTree dump。",
+                "${item.type.name} 类型暂不支持可视化预览，\n可导出原始数据或 TypeTree 转储。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -69,17 +69,17 @@ fun AssetListScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val assets by viewModel.assets.collectAsState()
-    // rememberSaveable：导航到详情页后列表页会被销毁，普通 remember 的Filter/Search状态会丢失
-    // （表现为Back后有时回到"All"分类）。Saveable 状态由导航栈持有，Back时原样恢复，
-    // LazyColumn 的滚动位置同样由其内部 rememberSaveable Automatically 保留。
+    // rememberSaveable：导航到详情页后列表页会被销毁，普通 remember 的筛选/搜索状态会丢失
+    // （表现为返回后有时回到"全部"分类）。Saveable 状态由导航栈持有，返回时原样恢复，
+    // LazyColumn 的滚动位置同样由其内部 rememberSaveable 自动保留。
     var search by rememberSaveable { mutableStateOf("") }
     var selectedType by rememberSaveable { mutableStateOf<String?>(null) }
 
-    // ---------- 多选模式（长按Asset进入；导航离开后ResetYes预期行为） ----------
+    // ---------- 多选模式（长按资产进入；导航离开后重置是预期行为） ----------
     var selectionMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<String>()) }
 
-    // ---------- Batch replace流程状态 ----------
+    // ---------- 批量替换流程状态 ----------
     var showFolderPicker by remember { mutableStateOf(false) }
     var batchFolder by remember { mutableStateOf<File?>(null) }
     var batchResult by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
@@ -87,7 +87,7 @@ fun AssetListScreen(
     var showPermDialog by remember { mutableStateOf(false) }
     val (storageGranted, requestStorage) = rememberStoragePermission()
 
-    // ---------- Batch export流程状态 ----------
+    // ---------- 批量导出流程状态 ----------
     var showExportDirPicker by remember { mutableStateOf(false) }
     val exportState by viewModel.exportState.collectAsState()
 
@@ -95,7 +95,7 @@ fun AssetListScreen(
     var tabOrder by remember { mutableStateOf<List<String>?>(null) }
     val savedOrder = tabOrder ?: TabOrderStore.load(context).also { tabOrder = it }
 
-    // TypeFilter：默认按数量降序，再按用户保存的顺序重排（保存过的在前，其余按默认序跟后）
+    // 类型筛选：默认按数量降序，再按用户保存的顺序重排（保存过的在前，其余按默认序跟后）
     val typeFilters = remember(assets, savedOrder) {
         val byCount = assets.groupBy { it.type.name }
             .map { (name, list) -> TypeFilter(name, prettyTypeName(name), list.size) }
@@ -115,7 +115,7 @@ fun AssetListScreen(
 
     /** 长按分类 tab → 置顶、持久化、滚回最左侧 */
     fun moveTabToFront(typeName: String) {
-        // 以"当前完整显示顺序"为基础保存，保证下次Load顺序完全一致
+        // 以"当前完整显示顺序"为基础保存，保证下次加载顺序完全一致
         val currentDisplay = typeFilters.map { it.typeName }
         val newOrder = TabOrderStore.moveToFront(currentDisplay, typeName)
         tabOrder = newOrder
@@ -123,7 +123,7 @@ fun AssetListScreen(
         scope.launch { chipScroll.animateScrollTo(0) }
         Toast.makeText(
             context,
-            "「${prettyTypeName(typeName)}」Moved to front (order saved)",
+            "「${prettyTypeName(typeName)}」已移到最前（顺序已保存）",
             Toast.LENGTH_SHORT
         ).show()
     }
@@ -136,7 +136,7 @@ fun AssetListScreen(
         }
     }
 
-    // 当前选中的Textureitems（Batch replace只处理 Texture2D）
+    // 当前选中的贴图项（批量替换只处理 Texture2D）
     val selectedTextures = remember(assets, selectedIds) {
         assets.filter { it.id in selectedIds && it.type == ClassIDType.Texture2D }
     }
@@ -152,9 +152,9 @@ fun AssetListScreen(
                 TopAppBar(
                     title = {
                         Column {
-                            Text("Selected ${selectedIds.size} items", style = MaterialTheme.typography.titleLarge)
+                            Text("已选 ${selectedIds.size} 项", style = MaterialTheme.typography.titleLarge)
                             Text(
-                                "其中Texture ${selectedTextures.size} textures（Batch replace仅处理Texture）",
+                                "其中贴图 ${selectedTextures.size} 张（批量替换仅处理贴图）",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -162,7 +162,7 @@ fun AssetListScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = { exitSelection() }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Exit multi-select")
+                            Icon(Icons.Filled.Close, contentDescription = "退出多选")
                         }
                     },
                     actions = {
@@ -170,23 +170,23 @@ fun AssetListScreen(
                             onClick = {
                                 selectedIds = filtered.map { it.id }.toSet()
                             }
-                        ) { Text("Select all") }
+                        ) { Text("全选") }
                         TextButton(
                             onClick = { showFolderPicker = true },
                             enabled = selectedTextures.isNotEmpty()
-                        ) { Text("Batch replace") }
+                        ) { Text("批量替换") }
                         TextButton(
                             onClick = { showExportDirPicker = true },
                             enabled = selectedIds.isNotEmpty() &&
                                 exportState !is MainViewModel.ExportState.Exporting
-                        ) { Text("Batch export") }
+                        ) { Text("批量导出") }
                     }
                 )
             } else {
                 TopAppBar(
                     title = {
                         Column {
-                            Text("Asset列表", style = MaterialTheme.typography.titleLarge)
+                            Text("资产列表", style = MaterialTheme.typography.titleLarge)
                             Text(
                                 "${filtered.size} / ${assets.size}",
                                 style = MaterialTheme.typography.labelSmall,
@@ -196,7 +196,7 @@ fun AssetListScreen(
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
                         }
                     }
                 )
@@ -208,20 +208,20 @@ fun AssetListScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // ---------- Search框 ----------
+            // ---------- 搜索框 ----------
             OutlinedTextField(
                 value = search,
                 onValueChange = { search = it },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("SearchName或 PathID…") },
+                placeholder = { Text("搜索名称或 PathID…") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true
             )
 
-            // ---------- TypeFilter ----------
-            // 「All」固定第一位；Type tab：点击Filter，长按置顶（顺序持久化保存）
+            // ---------- 类型筛选 ----------
+            // 「全部」固定第一位；类型 tab：点击筛选，长按置顶（顺序持久化保存）
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -230,7 +230,7 @@ fun AssetListScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TypeChip(
-                    text = "All (${assets.size})",
+                    text = "全部 (${assets.size})",
                     selected = selectedType == null,
                     onClick = { selectedType = null }
                 )
@@ -248,7 +248,7 @@ fun AssetListScreen(
 
             if (selectionMode) {
                 Text(
-                    "勾选Asset后点右上角「Batch export」；Texture可「Batch replace」",
+                    "勾选资产后点右上角「批量导出」；贴图可「批量替换」",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -257,7 +257,7 @@ fun AssetListScreen(
             }
 
             if (filtered.isEmpty()) {
-                EmptyPlaceholder("没有匹配的Asset", "尝试调整Search词或TypeFilter")
+                EmptyPlaceholder("没有匹配的资产", "尝试调整搜索词或类型筛选")
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -273,9 +273,9 @@ fun AssetListScreen(
                                 if (selectionMode) {
                                     selectedIds = if (checked) selectedIds - item.id else selectedIds + item.id
                                 } else {
-                                    // v1.10.1（图二体验优化）：懒 entries目在点下瞬间就开始从磁盘装载
-                                    // （不等导航到详情页再触发），解析与页面切换Animation重叠，
-                                    // 点开到出预览的等待时间整体缩短约一转场时长
+                                    // v1.10.1（图二体验优化）：懒条目在点下瞬间就开始从磁盘装载
+                                    // （不等导航到详情页再触发），解析与页面切换动画重叠，
+                                    // 点开到出预览的等待时间整体缩短约一个转场时长
                                     if (item.isLazy) viewModel.requestAssetLive(item.id)
                                     onOpenAsset(item.id)
                                 }
@@ -293,7 +293,7 @@ fun AssetListScreen(
         }
     }
 
-    // ---------- Batch replace：选择ImageFile夹 ----------
+    // ---------- 批量替换：选择图片文件夹 ----------
     if (showFolderPicker) {
         FilePickerDialog(
             pickDirectory = true,
@@ -305,7 +305,7 @@ fun AssetListScreen(
         )
     }
 
-    // ---------- Batch export：选择输出File夹 ----------
+    // ---------- 批量导出：选择输出文件夹 ----------
     if (showExportDirPicker) {
         FilePickerDialog(
             pickDirectory = true,
@@ -321,21 +321,21 @@ fun AssetListScreen(
         )
     }
 
-    // ---------- Batch export：进度 / 结果 ----------
+    // ---------- 批量导出：进度 / 结果 ----------
     when (val es = exportState) {
         is MainViewModel.ExportState.Exporting -> {
             AlertDialog(
                 onDismissRequest = { },
-                title = { Text("Batch export") },
+                title = { Text("正在批量导出") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("第 ${es.current} / ${es.total} ：${es.name.ifBlank { "…" }}")
+                        Text("第 ${es.current} / ${es.total} 个：${es.name.ifBlank { "…" }}")
                         androidx.compose.material3.LinearProgressIndicator(
                             progress = { es.progress },
                             modifier = Modifier.fillMaxWidth()
                         )
                         Text(
-                            "Texture导出为 PNG，Model为 OBJ，Audio为 WAV…\n单Failed会跳过并继续，不会中断。",
+                            "贴图导出为 PNG，模型为 OBJ，音频为 WAV…\n单个失败会跳过并继续，不会中断。",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -351,17 +351,17 @@ fun AssetListScreen(
         is MainViewModel.ExportState.Done -> {
             AlertDialog(
                 onDismissRequest = { viewModel.consumeExportState() },
-                title = { Text(if (es.cancelled) "导出已取消" else "Export complete") },
+                title = { Text(if (es.cancelled) "导出已取消" else "导出完成") },
                 text = {
                     Text(
                         buildString {
-                            append("Success导出 ${es.okCount} ")
+                            append("成功导出 ${es.okCount} 个")
                             if (es.cancelled) append("（已取消剩余部分）")
                             append("\n保存位置：${es.dirPath}")
                             if (es.failures.isNotEmpty()) {
-                                append("\n\nFailed ${es.failures.size} ：")
+                                append("\n\n失败 ${es.failures.size} 个：")
                                 append(es.failures.take(3).joinToString("\n"))
-                                if (es.failures.size > 3) append("\n… 等 ${es.failures.size} items")
+                                if (es.failures.size > 3) append("\n… 等 ${es.failures.size} 项")
                             }
                         },
                         style = MaterialTheme.typography.bodySmall
@@ -371,14 +371,14 @@ fun AssetListScreen(
                     TextButton(onClick = {
                         viewModel.consumeExportState()
                         exitSelection()
-                    }) { Text("Complete") }
+                    }) { Text("完成") }
                 }
             )
         }
         MainViewModel.ExportState.Idle -> Unit
     }
 
-    // ---------- Batch replace：匹配确认 + 执行 ----------
+    // ---------- 批量替换：匹配确认 + 执行 ----------
     batchFolder?.let { folder ->
         BatchReplaceDialog(
             viewModel = viewModel,
@@ -389,11 +389,11 @@ fun AssetListScreen(
         )
     }
 
-    // ---------- Batch replace结果 ----------
+    // ---------- 批量替换结果 ----------
     batchResult?.let { (ok, msg) ->
         AlertDialog(
             onDismissRequest = { batchResult = null },
-            title = { Text(if (ok) "ReplaceComplete" else "ReplaceFailed") },
+            title = { Text(if (ok) "替换完成" else "替换失败") },
             text = { Text(msg) },
             confirmButton = {
                 if (ok) {
@@ -421,12 +421,12 @@ fun AssetListScreen(
     if (showPermDialog) {
         AlertDialog(
             onDismissRequest = { showPermDialog = false },
-            title = { Text("Storage permission required") },
+            title = { Text("需要存储权限") },
             text = {
                 Text(
-                    "保存Replace后的File需要「所有File访问」权限。\n\n" +
-                        "点击「Grant access」跳转系统设置页，找到本应用并开启" +
-                        "\"Allow management of all files\"后Back即可。",
+                    "保存替换后的文件需要「所有文件访问」权限。\n\n" +
+                        "点击「去授权」跳转系统设置页，找到本应用并开启" +
+                        "\"允许管理所有文件\"后返回即可。",
                     style = MaterialTheme.typography.bodySmall
                 )
             },
@@ -434,7 +434,7 @@ fun AssetListScreen(
                 TextButton(onClick = {
                     showPermDialog = false
                     requestStorage()
-                }) { Text("Grant access") }
+                }) { Text("去授权") }
             },
             dismissButton = {
                 TextButton(onClick = { showPermDialog = false }) { Text("取消") }
@@ -442,7 +442,7 @@ fun AssetListScreen(
         )
     }
 
-    // ---------- Batch replace结果另存 ----------
+    // ---------- 批量替换结果另存 ----------
     if (showBatchSave) {
         val pending = viewModel.pendingSave.collectAsState().value
         if (pending != null) {
@@ -522,7 +522,7 @@ private fun AssetRow(
         },
         headlineContent = {
             Text(
-                item.name.ifEmpty { "(Unnamed)" },
+                item.name.ifEmpty { "(未命名)" },
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
@@ -530,7 +530,7 @@ private fun AssetRow(
         },
         supportingContent = {
             Text(
-                // v1.10.0：懒 entries目（磁盘暂存）加轻标记——点开时Automatically 按需装载（约 1 秒）
+                // v1.10.0：懒条目（磁盘暂存）加轻标记——点开时自动按需装载（约 1 秒）
                 "${item.type.name} · ${formatBytes(item.byteSize)} · ${item.fileName}" +
                     if (item.isLazy) " · 磁盘" else "",
                 style = MaterialTheme.typography.bodySmall,
@@ -549,19 +549,19 @@ private fun AssetRow(
 }
 
 private fun prettyTypeName(name: String): String = when (name) {
-    "Texture2D" -> "Texture"
-    "Sprite" -> "Sprite"
-    "TextAsset" -> "Text"
-    "AudioClip" -> "Audio"
+    "Texture2D" -> "贴图"
+    "Sprite" -> "精灵"
+    "TextAsset" -> "文本"
+    "AudioClip" -> "音频"
     "MonoBehaviour" -> "脚本"
     "GameObject" -> "对象"
-    "Material" -> "Material"
-    "Shader" -> "Shader"
-    "Font" -> "Font"
-    "VideoClip" -> "Video"
-    "MovieTexture" -> "Video"
-    "AnimatorController" -> "Animator Controller"
-    "AnimationClip" -> "Animation"
-    "Transform" -> "Transform"
+    "Material" -> "材质"
+    "Shader" -> "着色器"
+    "Font" -> "字体"
+    "VideoClip" -> "视频"
+    "MovieTexture" -> "视频"
+    "AnimatorController" -> "动画控制器"
+    "AnimationClip" -> "动画"
+    "Transform" -> "变换"
     else -> name
 }

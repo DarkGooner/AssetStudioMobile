@@ -1,10 +1,10 @@
 <resources>
     <string name="app_name">AssetStudio</string>
-    <string name="open_file">Open file</string>
-    <string name="open_folder">Open file夹</string>
+    <string name="open_file">Open File</string>
+    <string name="open_folder">Open Folder</string>
     <string name="export">Export</string>
-    <string name="replace_texture">Replace texture</string>
-    <string name="export_all">Export全部</string>
+    <string name="replace_texture">Replace Texture</string>
+    <string name="export_all">Export All</string>
     <string name="search_hint">Search asset name…</string>
     <string name="no_assets">No assets</string>
     <string name="loading">Loading…</string>
